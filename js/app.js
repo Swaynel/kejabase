@@ -2,10 +2,11 @@
 // App.js – Main Application Logic
 // ==============================
 
-// Wait until DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   // Initialize state (listings, auth)
-  state.initializeState();
+  state.initializeState().then(() => {
+    updateUIFromState();
+  });
 
   // Register service worker
   if ("serviceWorker" in navigator) {
@@ -18,8 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Mobile menu toggle
-  const mobileMenuButton = document.getElementById("mobile-menu-button");
-  mobileMenuButton?.addEventListener("click", toggleMobileMenu);
+  document.getElementById("mobile-menu-button")?.addEventListener("click", toggleMobileMenu);
 
   // Page-specific initialization
   const path = window.location.pathname;
@@ -27,9 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
   else if (path.includes("bnb.html")) initBnbPage();
   else if (path.includes("house-detail.html")) initHouseDetailPage();
   else if (path.includes("dashboard-")) initDashboardPage();
-
-  // Initial UI sync
-  updateUIFromState();
 });
 
 // ==============================
@@ -76,7 +73,6 @@ function initBrowsePage() {
     renderListings(state.AppState.listings);
   });
 
-  // Render initial listings
   renderListings(state.AppState.listings);
 }
 
@@ -99,33 +95,27 @@ function initBnbPage() {
 // ==============================
 // House Detail Page
 // ==============================
-function initHouseDetailPage() {
+async function initHouseDetailPage() {
   const listingId = new URLSearchParams(window.location.search).get("id");
   if (!listingId) return (window.location.href = "/browse.html");
 
   let listing = state.AppState.listings.find((l) => l.id === listingId);
 
-  // Fetch from Firestore if not in state
   if (!listing) {
-    const collections =
-      state.AppState.listings.find((l) => l.id === listingId)?.type === "bnb"
-        ? firebaseServices.collections.bnbs
-        : firebaseServices.collections.houses;
+    try {
+      const houseDoc = await firebaseServices.collections.houses.doc(listingId).get();
+      const bnbDoc = await firebaseServices.collections.bnbs.doc(listingId).get();
 
-    collections
-      .doc(listingId)
-      .get()
-      .then((doc) => {
-        if (doc.exists) {
-          listing = { id: doc.id, ...doc.data() };
-          state.updateState({ listings: [...state.AppState.listings, listing] });
-          renderListingDetail(listing);
-        } else window.location.href = "/browse.html";
-      })
-      .catch((err) => {
-        console.error(err);
-        window.location.href = "/browse.html";
-      });
+      if (houseDoc.exists) listing = { id: houseDoc.id, ...houseDoc.data(), type: "house" };
+      else if (bnbDoc.exists) listing = { id: bnbDoc.id, ...bnbDoc.data(), type: "bnb" };
+      else return (window.location.href = "/browse.html");
+
+      state.updateState({ listings: [...state.AppState.listings, listing] });
+      renderListingDetail(listing);
+    } catch (err) {
+      console.error(err);
+      window.location.href = "/browse.html";
+    }
   } else renderListingDetail(listing);
 
   // Booking form
@@ -144,6 +134,11 @@ function initHouseDetailPage() {
 // Booking
 // ==============================
 function handleBooking(listingId, listingType) {
+  if (!state.AppState.currentUser) {
+    alert("Please login to make a booking.");
+    return;
+  }
+
   const bookingForm = document.getElementById("booking-form");
   if (!bookingForm) return;
 
@@ -258,10 +253,18 @@ function renderListings(listings) {
     `;
     container.appendChild(el);
 
+    // Optimized favorite button
     el.querySelector(".favorite-btn")?.addEventListener("click", (e) => {
       e.preventDefault();
       state.toggleFavorite(listing.id);
-      renderListings(listings);
+      const svg = e.currentTarget.querySelector("svg");
+      if (state.AppState.favorites.includes(listing.id)) {
+        svg.classList.add("text-red-500", "fill-red-500");
+        svg.classList.remove("text-gray-400");
+      } else {
+        svg.classList.remove("text-red-500", "fill-red-500");
+        svg.classList.add("text-gray-400");
+      }
     });
   });
 }
@@ -314,16 +317,41 @@ function initDashboardPage() {
 // UI State Sync
 // ==============================
 function updateUIFromState() {
-  // Auth-based elements
   document.querySelectorAll("[data-auth]").forEach(el => {
     const authState = el.getAttribute("data-auth");
     if (authState === "authenticated") el.style.display = state.AppState.currentUser ? "block" : "none";
     else if (authState === "unauthenticated") el.style.display = state.AppState.currentUser ? "none" : "block";
   });
 
-  // Role-based elements
   document.querySelectorAll("[data-role]").forEach(el => {
     const requiredRole = el.getAttribute("data-role");
     el.style.display = state.AppState.role === requiredRole ? "block" : "none";
   });
 }
+
+// ==============================
+// Auth State Watcher
+// ==============================
+firebaseServices.auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    try {
+      const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
+      const userData = userDoc.data();
+
+      state.updateState({
+        currentUser: { uid: user.uid, ...userData },
+        role: userData?.role || "guest",
+      });
+
+      await state.initializeState();
+      updateUIFromState();
+    } catch (err) {
+      console.error("Error loading user data:", err);
+      state.AppState.error = err.message || "Error loading user";
+    }
+  } else {
+    state.updateState({ currentUser: null, role: null });
+    await state.initializeState();
+    updateUIFromState();
+  }
+});

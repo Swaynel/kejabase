@@ -1,6 +1,7 @@
 // ==============================
-// Global Application State
+// state.js – Global Application State
 // ==============================
+
 const AppState = {
   currentUser: null,
   role: null,
@@ -53,10 +54,9 @@ function updateState(newState) {
   saveStateToStorage();
   console.log("State updated:", AppState);
 
-  // Update UI immediately
   if (window.ui) {
-    ui.updateNavigation();
-    ui.renderListings(applyFilters());
+    ui.updateNavigation?.();
+    ui.renderListings?.(applyFilters());
   }
 }
 
@@ -66,7 +66,7 @@ function updateState(newState) {
 function resetFilters() {
   AppState.filters = { location: "", type: "", priceRange: null, amenities: [] };
   saveStateToStorage();
-  if (window.ui) ui.renderListings(applyFilters());
+  if (window.ui) ui.renderListings?.(applyFilters());
 }
 
 function applyFilters() {
@@ -97,13 +97,11 @@ function applyFilters() {
 // ==============================
 function toggleFavorite(listingId) {
   const idx = AppState.favorites.indexOf(listingId);
-  if (idx > -1) {
-    AppState.favorites.splice(idx, 1);
-  } else {
-    AppState.favorites.push(listingId);
-  }
+  if (idx > -1) AppState.favorites.splice(idx, 1);
+  else AppState.favorites.push(listingId);
+
   saveStateToStorage();
-  if (window.ui) ui.updateFavoriteButton(listingId);
+  if (window.ui) ui.updateFavoriteButton?.(listingId);
 }
 
 // ==============================
@@ -111,17 +109,25 @@ function toggleFavorite(listingId) {
 // ==============================
 async function initializeState() {
   try {
-    const listingsSnap = await firebaseServices.collections.listings.get();
+    const houseSnap = await firebaseServices.collections.houses.get();
+    const bnbSnap = await firebaseServices.collections.bnbs.get();
 
-    const allListings = listingsSnap.docs.map((doc) => ({
+    const houses = houseSnap.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data(),
+      type: "house",
       tags: doc.data().tags || [],
-      type: doc.data().type || "house",
+      ...doc.data(),
     }));
 
-    updateState({ listings: allListings });
+    const bnbs = bnbSnap.docs.map((doc) => ({
+      id: doc.id,
+      type: "bnb",
+      tags: doc.data().tags || [],
+      ...doc.data(),
+    }));
 
+    const allListings = [...houses, ...bnbs];
+    updateState({ listings: allListings });
   } catch (err) {
     console.error("Error initializing state:", err);
     AppState.error = err.message || "Error loading listings";
@@ -129,32 +135,7 @@ async function initializeState() {
 }
 
 // ==============================
-// Auth State Watcher
-// ==============================
-firebaseServices.auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
-      const userData = userDoc.data();
-
-      updateState({
-        currentUser: { uid: user.uid, ...userData },
-        role: userData?.role || "guest",
-      });
-
-      await initializeState();
-    } catch (err) {
-      console.error("Error loading user data:", err);
-      AppState.error = err.message || "Error loading user";
-    }
-  } else {
-    updateState({ currentUser: null, role: null });
-    await initializeState();
-  }
-});
-
-// ==============================
-// Initialize on Page Load
+// Load persisted state
 // ==============================
 loadStateFromStorage();
 

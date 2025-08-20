@@ -3,135 +3,189 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | Kejabase</title>
+  <title>Kejabase Login</title>
+  <meta name="description" content="Kejabase login portal">
+
+  <!-- Tailwind CSS -->
   <link href="./dist/output.css" rel="stylesheet">
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4F46E5">
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="192x192" href="images/icon-192.png">
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
+  <!-- Header / Navbar -->
   <header class="bg-white shadow-sm">
-    <nav class="max-w-7xl mx-auto px-4 sm:px-6">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center">
-          <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
+          <a href="index.html" class="text-xl font-bold text-indigo-600">Kejabase</a>
         </div>
-        <div class="flex items-center">
-          <a href="/register.html" class="text-gray-700 hover:text-indigo-600 mr-4">Register</a>
-          <a href="/browse.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Browse Homes</a>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="browse.html" class="text-gray-700 hover:text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="login.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your Property</a>
+        </div>
+        <div class="md:hidden flex items-center">
+          <button id="mobile-menu-button" class="text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="mobile-menu" class="md:hidden hidden">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+          <a href="browse.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="login.html" class="block px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 mx-3">List Your Property</a>
         </div>
       </div>
     </nav>
   </header>
 
-  <main class="flex-grow flex items-center justify-center py-8">
+  <!-- Login Form Section -->
+  <main class="flex-grow flex items-center justify-center py-20">
     <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-      <h1 class="text-2xl font-bold text-center mb-6">Login</h1>
-
+      <h1 class="text-2xl font-bold text-center mb-6">Login Portal</h1>
       <form id="login-form" class="space-y-4">
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-          <input type="email" id="email" name="email" required
+          <input type="email" id="email" required
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
-
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-          <input type="password" id="password" name="password" required
+          <input type="password" id="password" required
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
-
         <div class="flex items-center justify-between">
           <div class="flex items-center">
-            <input id="remember-me" name="remember-me" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+            <input id="remember-me" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
             <label for="remember-me" class="ml-2 block text-sm text-gray-700">Remember me</label>
           </div>
-          <a href="#" id="forgot-password" class="text-sm text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+          <div class="text-sm">
+            <a href="#" id="forgot-password" class="font-medium text-indigo-600 hover:text-indigo-500">Forgot password?</a>
+          </div>
         </div>
-
         <div>
-          <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm 
-                                      text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 
-                                      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Login
+          <button type="submit"
+                  class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Sign in
           </button>
         </div>
+        <div id="error-message" class="mt-4 hidden text-sm text-red-600"></div>
+        <div id="success-message" class="mt-4 hidden text-sm text-green-600"></div>
       </form>
-
       <div class="mt-4 text-center">
         <p class="text-sm text-gray-600">
           Don't have an account? 
-          <a href="/register.html" class="font-medium text-indigo-600 hover:text-indigo-500">Register here</a>
+          <a href="register.html" class="font-medium text-indigo-600 hover:text-indigo-500">Register here</a>
         </p>
       </div>
-
-      <div id="error-message" class="mt-4 hidden text-sm text-red-600"></div>
     </div>
   </main>
 
-  <footer class="bg-gray-800 text-white py-8">
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <p>&copy; 2023 Kejabase. All rights reserved.</p>
+      <p>&copy; 2025 Kejabase. All rights reserved.</p>
     </div>
   </footer>
 
-  <script src="/js/firebase.js"></script>
-  <script src="/js/authService.js"></script>
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <!-- Local Firebase initialization -->
+  <script src="js/firebase.js"></script>
+
+  <!-- Authentication service -->
+  <script src="js/authService.js"></script>
+
+  <!-- DOM Handling -->
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+      // Auto-redirect if already logged in
+      authService.checkAuthAndRedirect().then(({ isAuthenticated, dashboard }) => {
+        if (isAuthenticated && dashboard) window.location.href = dashboard;
+      });
 
-    // Auto-redirect if already logged in
-    authService.checkAuthAndRedirect().then(({ isAuthenticated, dashboard }) => {
-      if (isAuthenticated && dashboard) window.location.href = dashboard;
-    });
+      const loginForm = document.getElementById('login-form');
+      const errorDiv = document.getElementById('error-message');
+      const successDiv = document.getElementById('success-message');
+      const forgotBtn = document.getElementById('forgot-password');
 
-    const loginForm = document.getElementById('login-form');
-    const errorDiv = document.getElementById('error-message');
-    const forgotBtn = document.getElementById('forgot-password');
+      loginForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        errorDiv.classList.add('hidden');
+        successDiv.classList.add('hidden');
 
-    loginForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      errorDiv.classList.add('hidden');
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const rememberMe = document.getElementById('remember-me')?.checked || false;
 
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const rememberMe = document.getElementById('remember-me')?.checked || false;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Signing in...';
+        submitBtn.disabled = true;
 
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
-      const originalText = submitBtn.textContent;
-      submitBtn.textContent = 'Signing in...';
-      submitBtn.disabled = true;
+        authService.signInWithEmailAndPassword(email, password, rememberMe)
+          .then(({ dashboard }) => window.location.href = dashboard)
+          .catch(error => {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+          });
+      });
 
-      authService.signInWithEmailAndPassword(email, password, rememberMe)
-        .then(({ dashboard }) => window.location.href = dashboard)
-        .catch(error => {
-          errorDiv.textContent = error.message;
+      forgotBtn?.addEventListener('click', function(e) {
+        e.preventDefault();
+        errorDiv.classList.add('hidden');
+        successDiv.classList.add('hidden');
+
+        const email = document.getElementById('email').value;
+        if (!email) {
+          errorDiv.textContent = "Please enter your email first.";
           errorDiv.classList.remove('hidden');
-          submitBtn.textContent = originalText;
-          submitBtn.disabled = false;
-        });
-    });
+          return;
+        }
 
-    // Forgot password
-    forgotBtn?.addEventListener('click', function(e) {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      if (!email) {
-        errorDiv.textContent = "Please enter your email first.";
-        errorDiv.classList.remove('hidden');
-        return;
+        authService.sendPasswordResetEmail(email)
+          .then(() => {
+            successDiv.textContent = "Password reset email sent! Check your inbox.";
+            successDiv.classList.remove('hidden');
+          })
+          .catch(error => {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
+          });
+      });
+
+      // Mobile menu toggle
+      const mobileButton = document.getElementById('mobile-menu-button');
+      mobileButton?.addEventListener('click', function() {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
+      });
+
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('ServiceWorker registered:', reg))
+            .catch(err => console.error('ServiceWorker registration failed:', err));
+        });
       }
-
-      authService.sendPasswordResetEmail(email)
-        .then(() => {
-          errorDiv.textContent = "Password reset email sent! Check your inbox.";
-          errorDiv.classList.remove('hidden');
-        })
-        .catch(error => {
-          errorDiv.textContent = error.message;
-          errorDiv.classList.remove('hidden');
-        });
     });
-
-  });
   </script>
+
 </body>
 </html>

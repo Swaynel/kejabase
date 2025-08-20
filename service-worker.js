@@ -14,12 +14,19 @@ const CORE_ASSETS = [
   '/images/icon-512.png'
 ];
 
-// Install - cache core assets
+// Install - cache core assets individually
 self.addEventListener('install', event => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(CORE_ASSETS);
+      for (const asset of CORE_ASSETS) {
+        try {
+          await cache.add(asset);
+          console.log('[Service Worker] Cached:', asset);
+        } catch (err) {
+          console.error('[Service Worker] Failed to cache:', asset, err);
+        }
+      }
       self.skipWaiting();
     })()
   );
@@ -34,6 +41,7 @@ self.addEventListener('activate', event => {
         keys.map(key => key !== CACHE_NAME && caches.delete(key))
       );
       self.clients.claim();
+      console.log('[Service Worker] Activated and old caches cleared');
     })()
   );
 });
@@ -57,17 +65,15 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => null); // network failed
 
-      // Return cached response immediately if available, otherwise wait for network
       if (cachedResponse) {
-        // Update cache in background
-        fetchPromise;
+        fetchPromise; // update cache in background
         return cachedResponse;
       }
 
       const networkResponse = await fetchPromise;
       if (networkResponse) return networkResponse;
 
-      // Fallback to offline.html if HTML page
+      // Fallback to offline page for HTML requests
       if (event.request.headers.get('accept')?.includes('text/html')) {
         return caches.match('/offline.html');
       }

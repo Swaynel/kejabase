@@ -7,9 +7,9 @@ const AppState = {
   listings: [],
   filters: {
     location: "",
-    type: "",
+    type: "",       // "house", "bnb", or empty for all
     priceRange: null,
-    amenities: [], // ✅ Added amenities filter
+    amenities: [],
   },
   favorites: [],
   error: null,
@@ -50,8 +50,14 @@ function loadStateFromStorage() {
 // ==============================
 function updateState(newState) {
   Object.assign(AppState, newState);
-  saveStateToStorage(); // persist after every update
+  saveStateToStorage();
   console.log("State updated:", AppState);
+
+  // Update UI immediately
+  if (window.ui) {
+    ui.updateNavigation();
+    ui.renderListings(applyFilters());
+  }
 }
 
 // ==============================
@@ -60,6 +66,7 @@ function updateState(newState) {
 function resetFilters() {
   AppState.filters = { location: "", type: "", priceRange: null, amenities: [] };
   saveStateToStorage();
+  if (window.ui) ui.renderListings(applyFilters());
 }
 
 function applyFilters() {
@@ -69,10 +76,13 @@ function applyFilters() {
     const matchesLocation = location
       ? listing.location?.toLowerCase().includes(location.toLowerCase())
       : true;
+
     const matchesType = type ? listing.type === type : true;
+
     const matchesPrice = priceRange
       ? listing.price >= priceRange[0] && listing.price <= priceRange[1]
       : true;
+
     const matchesAmenities =
       amenities?.length > 0
         ? amenities.every((a) => listing.tags?.includes(a))
@@ -93,6 +103,7 @@ function toggleFavorite(listingId) {
     AppState.favorites.push(listingId);
   }
   saveStateToStorage();
+  if (window.ui) ui.updateFavoriteButton(listingId);
 }
 
 // ==============================
@@ -100,26 +111,17 @@ function toggleFavorite(listingId) {
 // ==============================
 async function initializeState() {
   try {
-    const [housesSnap, bnbsSnap] = await Promise.all([
-      firebaseServices.collections.houses.get(),
-      firebaseServices.collections.bnbs.get(),
-    ]);
+    const listingsSnap = await firebaseServices.collections.listings.get();
 
-    const houses = housesSnap.docs.map((doc) => ({
+    const allListings = listingsSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      type: "house",
       tags: doc.data().tags || [],
+      type: doc.data().type || "house",
     }));
 
-    const bnbs = bnbsSnap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-      type: "bnb",
-      tags: doc.data().tags || [],
-    }));
+    updateState({ listings: allListings });
 
-    updateState({ listings: [...houses, ...bnbs] });
   } catch (err) {
     console.error("Error initializing state:", err);
     AppState.error = err.message || "Error loading listings";
@@ -131,25 +133,34 @@ async function initializeState() {
 // ==============================
 firebaseServices.auth.onAuthStateChanged(async (user) => {
   if (user) {
-    const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
-    const userData = userDoc.data();
+    try {
+      const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
+      const userData = userDoc.data();
 
-    updateState({
-      currentUser: { uid: user.uid, ...userData },
-      role: userData?.role || "guest",
-    });
+      updateState({
+        currentUser: { uid: user.uid, ...userData },
+        role: userData?.role || "guest",
+      });
+
+      await initializeState();
+    } catch (err) {
+      console.error("Error loading user data:", err);
+      AppState.error = err.message || "Error loading user";
+    }
   } else {
     updateState({ currentUser: null, role: null });
+    await initializeState();
   }
 });
 
 // ==============================
 // Initialize on Page Load
 // ==============================
-loadStateFromStorage(); // restore state before Firebase re-checks auth
-initializeState(); // load listings
+loadStateFromStorage();
 
+// ==============================
 // Expose state globally
+// ==============================
 window.state = {
   AppState,
   updateState,

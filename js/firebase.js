@@ -1,55 +1,74 @@
-// Firebase configuration
+// ==============================
+// Firebase Configuration & Initialization
+// ==============================
+
+// Your Firebase config (replace with your actual config)
 const firebaseConfig = {
-  apiKey: "AIzaSyDsE-FHOqm9LRmC4ug82YeJ6Nyw8C1zWrc",
-  authDomain: "kejabase.firebaseapp.com",
-  projectId: "kejabase",
-  storageBucket: "kejabase.appspot.com", // ✅ fixed
-  messagingSenderId: "375634491997",
-  appId: "1:375634491997:web:7e67eb1c06c7afbc83ebb4",
-  measurementId: "G-JTFBB4SG03"
+  apiKey: "your-api-key",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "your-app-id"
 };
 
-// Initialize Firebase (safe check to avoid "already exists" error)
+// Initialize Firebase (only if not already initialized)
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
+} else {
+  firebase.app(); // if already initialized, use that one
 }
 
-// Initialize Firebase services
+// Initialize services
 const auth = firebase.auth();
-const db = firebase.firestore();
+const firestore = firebase.firestore();
 const storage = firebase.storage();
 
-// Initialize Analytics (if supported)
-let analytics = null;
-try {
-  if (firebase.analytics) {
-    analytics = firebase.analytics();
-  }
-} catch (err) {
-  console.warn("Analytics not supported in this environment:", err.message);
-}
-
-// Firebase collections reference
-const usersCollection = db.collection('users');
-const housesCollection = db.collection('houses');
-const bnbsCollection = db.collection('bnbs');
-const bookingsCollection = db.collection('bookings');
-const feedbackCollection = db.collection('feedback');
-const reportsCollection = db.collection('repAorts');
-
-// Export Firebase services to global scope
-window.firebaseServices = {
-  auth,
-  db,
-  storage,
-  analytics, // ✅ now available globally
+// ==============================
+// Firebase Services Object
+// ==============================
+const firebaseServices = {
+  auth: auth,
+  firestore: firestore,
+  storage: storage,
+  
+  // Collections shortcuts
   collections: {
-    users: usersCollection,
-    houses: housesCollection,
-    bnbs: bnbsCollection,
-    bookings: bookingsCollection,
-    feedback: feedbackCollection,
-    reports: reportsCollection
-  }
+    users: firestore.collection('users'),
+    houses: firestore.collection('houses'),
+    bnbs: firestore.collection('bnbs'),
+    bookings: firestore.collection('bookings')
+  },
+  
+  // Utility functions
+  serverTimestamp: firebase.firestore.FieldValue.serverTimestamp,
+  arrayUnion: firebase.firestore.FieldValue.arrayUnion,
+  arrayRemove: firebase.firestore.FieldValue.arrayRemove,
+  increment: firebase.firestore.FieldValue.increment
 };
-// Export Firebase services for module usage
+
+// ==============================
+// Export services globally
+// ==============================
+window.firebaseServices = firebaseServices;
+window.firebase = firebase;
+
+// ==============================
+// Connection Status Monitor
+// ==============================
+firestore.enableNetwork().then(() => {
+  console.log("Firebase connected successfully");
+}).catch((error) => {
+  console.error("Firebase connection error:", error);
+});
+
+// ==============================
+// Auth State Persistence Setup
+// ==============================
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+  .then(() => {
+    console.log("Auth persistence set to LOCAL");
+  })
+  .catch((error) => {
+    console.error("Auth persistence error:", error);
+  });

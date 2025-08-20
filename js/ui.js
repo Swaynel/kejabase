@@ -90,9 +90,55 @@ const ui = {
     });
   },
 
+  // Initialize all filters
+  initFilters() {
+    // Type dropdown
+    const typeSelect = document.getElementById('filter-type');
+    if (typeSelect) {
+      typeSelect.addEventListener('change', (e) => {
+        state.AppState.filters.type = e.target.value;
+        ui.renderListings(state.applyFilters());
+      });
+    }
+
+    // Location input
+    const locInput = document.getElementById('filter-location');
+    if (locInput) {
+      locInput.addEventListener('input', (e) => {
+        state.AppState.filters.location = e.target.value;
+        ui.renderListings(state.applyFilters());
+      });
+    }
+
+    // Price range min/max
+    const priceMinInput = document.getElementById('filter-price-min');
+    const priceMaxInput = document.getElementById('filter-price-max');
+    const updatePriceFilter = () => {
+      const min = parseFloat(priceMinInput?.value) || null;
+      const max = parseFloat(priceMaxInput?.value) || null;
+      state.AppState.filters.priceRange = (min !== null && max !== null) ? [min, max] : null;
+      ui.renderListings(state.applyFilters());
+    };
+    if (priceMinInput) priceMinInput.addEventListener('input', updatePriceFilter);
+    if (priceMaxInput) priceMaxInput.addEventListener('input', updatePriceFilter);
+
+    // Amenities checkboxes
+    const amenityCheckboxes = document.querySelectorAll('input[name="filter-amenities"]');
+    amenityCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const selected = Array.from(amenityCheckboxes)
+          .filter(c => c.checked)
+          .map(c => c.value);
+        state.AppState.filters.amenities = selected;
+        ui.renderListings(state.applyFilters());
+      });
+    });
+  },
+
   init() {
     this.updateNavigation();
     this.initDatePickers();
+    this.initFilters();
   }
 };
 

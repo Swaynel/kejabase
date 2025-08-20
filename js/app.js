@@ -19,9 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Mobile menu toggle
   const mobileMenuButton = document.getElementById("mobile-menu-button");
-  if (mobileMenuButton) {
-    mobileMenuButton.addEventListener("click", toggleMobileMenu);
-  }
+  mobileMenuButton?.addEventListener("click", toggleMobileMenu);
 
   // Page-specific initialization
   const path = window.location.pathname;
@@ -39,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==============================
 function toggleMobileMenu() {
   const mobileMenu = document.getElementById("mobile-menu");
-  if (mobileMenu) mobileMenu.classList.toggle("hidden");
+  mobileMenu?.classList.toggle("hidden");
 }
 
 // ==============================
@@ -51,37 +49,32 @@ function initBrowsePage() {
   const typeFilter = document.getElementById("type-filter");
   const resetBtn = document.getElementById("reset-filters");
 
-  if (locationFilter)
-    locationFilter.addEventListener("input", () => {
-      state.updateState({
-        filters: { ...state.AppState.filters, location: locationFilter.value },
-      });
-      renderListings(state.applyFilters());
+  locationFilter?.addEventListener("input", () => {
+    state.updateState({
+      filters: { ...state.AppState.filters, location: locationFilter.value },
     });
+    renderListings(state.applyFilters());
+  });
 
-  if (priceFilter)
-    priceFilter.addEventListener("change", () => {
-      const [min, max] = priceFilter.value.split("-").map(Number);
-      state.updateState({
-        filters: { ...state.AppState.filters, priceRange: [min || 0, max || Infinity] },
-      });
-      renderListings(state.applyFilters());
+  priceFilter?.addEventListener("change", () => {
+    const [min, max] = priceFilter.value.split("-").map(Number);
+    state.updateState({
+      filters: { ...state.AppState.filters, priceRange: [min || 0, max || Infinity] },
     });
+    renderListings(state.applyFilters());
+  });
 
-  if (typeFilter)
-    typeFilter.addEventListener("change", () => {
-      state.updateState({
-        filters: { ...state.AppState.filters, type: typeFilter.value },
-      });
-      renderListings(state.applyFilters());
+  typeFilter?.addEventListener("change", () => {
+    state.updateState({
+      filters: { ...state.AppState.filters, type: typeFilter.value },
     });
+    renderListings(state.applyFilters());
+  });
 
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      state.resetFilters();
-      renderListings(state.AppState.listings);
-    });
-  }
+  resetBtn?.addEventListener("click", () => {
+    state.resetFilters();
+    renderListings(state.AppState.listings);
+  });
 
   // Render initial listings
   renderListings(state.AppState.listings);
@@ -94,23 +87,20 @@ function initBnbPage() {
   initBrowsePage();
 
   const amenitiesFilter = document.getElementById("amenities-filter");
-  if (amenitiesFilter)
-    amenitiesFilter.addEventListener("change", () => {
-      const selectedAmenities = Array.from(amenitiesFilter.selectedOptions).map((opt) => opt.value);
-      // Treat amenities as tags filter
-      state.updateState({
-        filters: { ...state.AppState.filters, amenities: selectedAmenities },
-      });
-      renderListings(state.applyFilters());
+  amenitiesFilter?.addEventListener("change", () => {
+    const selectedAmenities = Array.from(amenitiesFilter.selectedOptions).map((opt) => opt.value);
+    state.updateState({
+      filters: { ...state.AppState.filters, amenities: selectedAmenities },
     });
+    renderListings(state.applyFilters());
+  });
 }
 
 // ==============================
 // House Detail Page
 // ==============================
 function initHouseDetailPage() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const listingId = urlParams.get("id");
+  const listingId = new URLSearchParams(window.location.search).get("id");
   if (!listingId) return (window.location.href = "/browse.html");
 
   let listing = state.AppState.listings.find((l) => l.id === listingId);
@@ -140,17 +130,14 @@ function initHouseDetailPage() {
 
   // Booking form
   const bookingForm = document.getElementById("booking-form");
-  if (bookingForm)
-    bookingForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      handleBooking(listingId, listing.type);
-    });
+  bookingForm?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleBooking(listingId, listing.type);
+  });
 
   // Favorite button
   const favoriteButton = document.getElementById("favorite-button");
-  if (favoriteButton) {
-    favoriteButton.addEventListener("click", () => state.toggleFavorite(listingId));
-  }
+  favoriteButton?.addEventListener("click", () => state.toggleFavorite(listingId));
 }
 
 // ==============================
@@ -186,6 +173,9 @@ function generateBookingReceipt(booking) {
   const listing = state.AppState.listings.find((l) => l.id === booking.listingId);
   if (!listing) return;
 
+  const nights = Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24));
+  const totalPrice = (listing.price * nights).toFixed(2);
+
   const receiptHTML = `
     <div class="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto">
       <h2 class="text-2xl font-bold mb-4">Booking Confirmation</h2>
@@ -194,12 +184,8 @@ function generateBookingReceipt(booking) {
         <p class="text-gray-600">${listing.location}</p>
       </div>
       <div class="grid grid-cols-2 gap-4 mb-6">
-        <div><p class="text-sm text-gray-500">Check-in</p><p>${new Date(
-          booking.startDate
-        ).toLocaleDateString()}</p></div>
-        <div><p class="text-sm text-gray-500">Check-out</p><p>${new Date(
-          booking.endDate
-        ).toLocaleDateString()}</p></div>
+        <div><p class="text-sm text-gray-500">Check-in</p><p>${new Date(booking.startDate).toLocaleDateString()}</p></div>
+        <div><p class="text-sm text-gray-500">Check-out</p><p>${new Date(booking.endDate).toLocaleDateString()}</p></div>
         <div><p class="text-sm text-gray-500">Guests</p><p>${booking.guests}</p></div>
         <div><p class="text-sm text-gray-500">Booking ID</p><p>${booking.id}</p></div>
       </div>
@@ -207,18 +193,12 @@ function generateBookingReceipt(booking) {
         <h4 class="font-semibold mb-2">Price Summary</h4>
         <div class="border-t border-b border-gray-200 py-2">
           <div class="flex justify-between py-1">
-            <span>${listing.price} x ${Math.ceil(
-    (new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24)
-  )} nights</span>
-            <span>$${(listing.price *
-    Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24)
-  )).toFixed(2)}</span>
+            <span>${listing.price} x ${nights} nights</span>
+            <span>$${totalPrice}</span>
           </div>
           <div class="flex justify-between py-1 font-semibold">
             <span>Total</span>
-            <span>$${(listing.price *
-    Math.ceil((new Date(booking.endDate) - new Date(booking.startDate)) / (1000 * 60 * 60 * 24)
-  )).toFixed(2)}</span>
+            <span>$${totalPrice}</span>
           </div>
         </div>
       </div>
@@ -256,7 +236,7 @@ function renderListings(listings) {
     el.innerHTML = `
       <a href="/house-detail.html?id=${listing.id}">
         <div class="relative">
-          <img src="${listing.images && listing.images[0] ? listing.images[0] : '/images/placeholder.jpg'}" alt="${listing.title}" class="w-full h-48 object-cover">
+          <img src="${listing.images?.[0] || '/images/placeholder.jpg'}" alt="${listing.title}" class="w-full h-48 object-cover">
           <div class="absolute top-2 right-2">
             <button class="favorite-btn p-2 bg-white rounded-full shadow-md" data-id="${listing.id}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${
@@ -278,15 +258,11 @@ function renderListings(listings) {
     `;
     container.appendChild(el);
 
-    // Favorite button event
-    const favBtn = el.querySelector(".favorite-btn");
-    if (favBtn) {
-      favBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        state.toggleFavorite(listing.id);
-        renderListings(listings);
-      });
-    }
+    el.querySelector(".favorite-btn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      state.toggleFavorite(listing.id);
+      renderListings(listings);
+    });
   });
 }
 
@@ -300,40 +276,54 @@ function renderListingDetail(listing) {
 
   document.getElementById("listing-title")?.textContent = listing.title;
   document.getElementById("listing-location")?.textContent = listing.location;
-  document.getElementById("listing-price")?.textContent =
-    `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
+  document.getElementById("listing-price")?.textContent = `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
 
-  // Gallery
   const gallery = document.getElementById("listing-gallery");
-  if (gallery) {
-    gallery.innerHTML = "";
-    if (listing.images && listing.images.length > 0) {
-      listing.images.forEach((img) => {
-        const div = document.createElement("div");
-        div.className = "rounded-lg overflow-hidden";
-        div.innerHTML = `<img src="${img}" alt="${listing.title}" class="w-full h-full object-cover">`;
-        gallery.appendChild(div);
-      });
-    }
-  }
+  gallery && (gallery.innerHTML = "");
+  listing.images?.forEach((img) => {
+    const div = document.createElement("div");
+    div.className = "rounded-lg overflow-hidden";
+    div.innerHTML = `<img src="${img}" alt="${listing.title}" class="w-full h-full object-cover">`;
+    gallery?.appendChild(div);
+  });
 
-  // Tags / amenities
   const amenities = document.getElementById("amenities-list");
-  if (amenities) {
-    amenities.innerHTML = "";
-    if (listing.tags && listing.tags.length > 0) {
-      listing.tags.forEach((tag) => {
-        const li = document.createElement("li");
-        li.className = "flex items-center space-x-2";
-        li.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
-          <span>${tag}</span>`;
-        amenities.appendChild(li);
-      });
-    }
-  }
+  amenities && (amenities.innerHTML = "");
+  listing.tags?.forEach((tag) => {
+    const li = document.createElement("li");
+    li.className = "flex items-center space-x-2";
+    li.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+      </svg>
+      <span>${tag}</span>`;
+    amenities?.appendChild(li);
+  });
 
   document.getElementById("listing-description")?.textContent = listing.description;
+}
+
+// ==============================
+// Dashboard Page
+// ==============================
+function initDashboardPage() {
+  console.log("Dashboard page initialized");
+}
+
+// ==============================
+// UI State Sync
+// ==============================
+function updateUIFromState() {
+  // Auth-based elements
+  document.querySelectorAll("[data-auth]").forEach(el => {
+    const authState = el.getAttribute("data-auth");
+    if (authState === "authenticated") el.style.display = state.AppState.currentUser ? "block" : "none";
+    else if (authState === "unauthenticated") el.style.display = state.AppState.currentUser ? "none" : "block";
+  });
+
+  // Role-based elements
+  document.querySelectorAll("[data-role]").forEach(el => {
+    const requiredRole = el.getAttribute("data-role");
+    el.style.display = state.AppState.role === requiredRole ? "block" : "none";
+  });
 }

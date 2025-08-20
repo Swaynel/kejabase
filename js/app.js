@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==============================
 function toggleMobileMenu() {
   const mobileMenu = document.getElementById("mobile-menu");
-  mobileMenu?.classList.toggle("hidden");
+  if (mobileMenu) mobileMenu.classList.toggle("hidden");
 }
 
 // ==============================
@@ -254,18 +254,21 @@ function renderListings(listings) {
     container.appendChild(el);
 
     // Optimized favorite button
-    el.querySelector(".favorite-btn")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      state.toggleFavorite(listing.id);
-      const svg = e.currentTarget.querySelector("svg");
-      if (state.AppState.favorites.includes(listing.id)) {
-        svg.classList.add("text-red-500", "fill-red-500");
-        svg.classList.remove("text-gray-400");
-      } else {
-        svg.classList.remove("text-red-500", "fill-red-500");
-        svg.classList.add("text-gray-400");
-      }
-    });
+    const favBtn = el.querySelector(".favorite-btn");
+    if (favBtn) {
+      favBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        state.toggleFavorite(listing.id);
+        const svg = e.currentTarget.querySelector("svg");
+        if (state.AppState.favorites.includes(listing.id)) {
+          svg.classList.add("text-red-500", "fill-red-500");
+          svg.classList.remove("text-gray-400");
+        } else {
+          svg.classList.remove("text-red-500", "fill-red-500");
+          svg.classList.add("text-gray-400");
+        }
+      });
+    }
   });
 }
 
@@ -277,12 +280,17 @@ function renderListingDetail(listing) {
 
   document.title = `${listing.title} | Kejabase`;
 
-  document.getElementById("listing-title")?.textContent = listing.title;
-  document.getElementById("listing-location")?.textContent = listing.location;
-  document.getElementById("listing-price")?.textContent = `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
+  const titleEl = document.getElementById("listing-title");
+  if (titleEl) titleEl.textContent = listing.title;
+
+  const locationEl = document.getElementById("listing-location");
+  if (locationEl) locationEl.textContent = listing.location;
+
+  const priceEl = document.getElementById("listing-price");
+  if (priceEl) priceEl.textContent = `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
 
   const gallery = document.getElementById("listing-gallery");
-  gallery && (gallery.innerHTML = "");
+  if (gallery) gallery.innerHTML = "";
   listing.images?.forEach((img) => {
     const div = document.createElement("div");
     div.className = "rounded-lg overflow-hidden";
@@ -291,7 +299,7 @@ function renderListingDetail(listing) {
   });
 
   const amenities = document.getElementById("amenities-list");
-  amenities && (amenities.innerHTML = "");
+  if (amenities) amenities.innerHTML = "";
   listing.tags?.forEach((tag) => {
     const li = document.createElement("li");
     li.className = "flex items-center space-x-2";
@@ -303,7 +311,8 @@ function renderListingDetail(listing) {
     amenities?.appendChild(li);
   });
 
-  document.getElementById("listing-description")?.textContent = listing.description;
+  const descEl = document.getElementById("listing-description");
+  if (descEl) descEl.textContent = listing.description;
 }
 
 // ==============================

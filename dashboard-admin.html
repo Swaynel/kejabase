@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | Kejabase</title>
+  <link href="./dist/output.css" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body class="bg-gray-100">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:flex-shrink-0">
+      <div class="flex flex-col w-64 bg-indigo-800">
+        <div class="flex items-center h-16 px-4 bg-indigo-900">
+          <span class="text-white font-bold">Kejabase</span>
+        </div>
+        <div class="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
+          <div class="px-4 mb-4">
+            <div class="flex items-center">
+              <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                <span id="user-initial">A</span>
+              </div>
+              <div class="ml-3">
+                <p id="user-name" class="text-sm font-medium text-white">Admin User</p>
+                <p class="text-xs font-medium text-indigo-200">Administrator</p>
+              </div>
+            </div>
+          </div>
+          <nav class="flex-1 px-2 space-y-1">
+            <a href="/dashboard-admin.html" class="bg-indigo-900 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Dashboard
+            </a>
+            <a href="#" id="moderation" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Moderation
+            </a>
+            <a href="#" id="reports" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Reports
+            </a>
+            <a href="#" id="users" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 极速赛车开奖直播历史记录" />
+              </svg>
+              User Management
+            </a>
+            <a href="#" id="listings" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w极速赛车开奖直播历史记录" />
+              </svg>
+              All Listings
+            </a>
+            <a href="#" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2极速赛车开奖直播历史记录" />
+              </svg>
+              Settings
+            </a>
+          </nav>
+        </div>
+        <div class="p-4 border极速赛车开奖直播历史记录">
+          <button id="sign-out" class="flex items-center text-sm font-medium text-indigo-200 hover:text-white">
+            <svg class="mr-2 h-5 w-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4极速赛车开奖直播历史记录" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex flex-col flex-1 overflow-hidden">
+      <!-- Mobile top navigation -->
+      <div class="md:hidden bg-white shadow-sm">
+        <div class="flex items-center justify-between h-16 px-4">
+          <div>
+            <button id="mobile-menu-button" class="text-gray-500">
+              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
+          <div class="text-xl font-bold text-indigo-极速赛车开奖直播历史记录">Kejabase</div>
+          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+            <span id="mobile-user-initial">A</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile sidebar -->
+      <div id="mobile-menu" class="hidden md:hidden bg-indigo-800 text-white">
+        <div class="px-4 py-4 border-b border-indigo-700">
+          <div class="flex items-center">
+            <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+              <span id="mobile-user-initial-sidebar">A</span>
+            </div>
+            <div class="ml-3">
+              <p id="mobile-user-name" class="text-sm font-medium text-white">Admin User</p>
+              <p class="text-xs font-medium text-indigo-200">Administrator</p>
+            </div>
+          </div>
+        </div>
+        <nav class="px-2 py-3 space-y-1">
+          <a href="/dashboard-admin.html" class="bg-indigo-900 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+            <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0极速赛车开奖直播历史记录" />
+            </svg>
+            Dashboard
+          </a>
+          <!-- Other mobile menu items -->
+        </nav>
+        <div class="px-2 py-3 border-t border-indigo-700">
+          <button id="mobile-sign-out" class="flex items-center text-sm font-medium text-indigo-200 hover:text-white">
+            <svg class="mr-2 h-5 w-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+
+      <!-- Main content area -->
+      <div class="flex-1 overflow-auto p-4">
+        <div class="max-w-7xl mx-auto">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p class="text-gray-600">Manage platform content and users</p>
+          </div>
+
+          <!-- Stats cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-4 rounded-lg shadow">
+              <div class="flex items-center">
+                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Total Users</p>
+                  <p id="total-users" class="text-2xl font-semibold text-gray-900">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+              <div class="极速赛车开奖直播历史记录">
+                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-8m-8 0H3m2 0h8M9 7h1m-1 4极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium极速赛车开奖直播历史记录">Total Listings</p>
+                  <p id="total-listings" class="text-2xl font-semibold text-gray-900">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+              <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Pending Reports</p>
+                  <p id="pending-reports" class="text-2xl font-semibold text-gray-900">0</p>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+              <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div class="ml-4">
+                  <p class="text-sm font-medium text-gray-500">Revenue</p>
+                  <p id="total-revenue" class="text-2xl font-semibold text-gray-900">$0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <a href="#" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors">
+                <div class="p-2 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 极速赛车开奖直播历史记录">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-medium text-gray-900">Moderate Content</h3>
+                  <p class="text-sm text-gray-500">Review reported listings</p>
+                </div>
+              </a>
+              <a href="#" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors">
+                <div class="p-2 rounded-full bg-green-100 text-green-600 mr-4">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-medium text-gray-900">View Reports</h3>
+                  <p class="text-sm text-gray-500">Platform analytics</p>
+                </div>
+              </a>
+              <a href="#" class="flex items-center p-4 border border极速赛车开奖直播历史记录">
+                <div class="p-2 rounded-full bg-blue-100 text-blue-600 mr-4">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-medium text-gray-900">Manage Users</h3>
+                  <p class="text-sm text-gray-500">User administration</p>
+                </div>
+              </a>
+              <a href="#" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors">
+                <div class="p-2 rounded-full bg-purple-100 text-purple-600 mr-4">
+                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-8m-8 0H3m2 0h8M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1极速赛车开奖直播历史记录" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-medium text-gray-900">All Listings</h3>
+                  <p class="text-sm text-gray-500">Manage properties</p>
+                </div>
+              </a>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="bg-white p-4 rounded-lg shadow">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-medium text-gray-900">Recent Activity</h2>
+              <a href="#" class="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium极速赛车开奖直播历史记录">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-activity" class="bg-white divide-y divide-gray-200">
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        Report
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Listing reported for inappropriate content</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">user123</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2 hours ago</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href="#" class="text-indigo-600 hover:text-indigo-900">Review</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                        Signup
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">New provider registered</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">provider456</td>
+                    <td class="px-极速赛车开奖直播历史记录">5 hours ago</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href="#" class="text-indigo-600 hover:text-indigo-900">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        Listing
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">New house listing created</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">host789</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1 day ago</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <a href="#" class="text-indigo-600 hover:text-indigo-900">Verify</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/firebase.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/state.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mobile menu toggle
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+      
+      // Sign out buttons
+      const signOutButtons = [
+        document.getElementById('sign-out'),
+        document.getElementById('mobile-sign-out')
+      ];
+      
+      signOutButtons.forEach(button => {
+        if (button) {
+          button.addEventListener('click', function() {
+            auth.signOut()
+              .then(() => {
+                window.location.href = '/login-admin.html';
+              });
+          });
+        }
+      });
+      
+      // Update user info
+      const currentState = state.getState();
+      if (currentState.currentUser) {
+        firebaseServices.collections.users.doc(currentState.currentUser.uid).get()
+          .then(doc => {
+            if (doc.exists) {
+              const userData = doc.data();
+              const userName = userData.name || 'Admin';
+              const userInitial = userName.charAt(0).toUpperCase();
+              
+              document.querySelectorAll('#user-name, #mobile-user-name').forEach(el => {
+                el.textContent = userName;
+              });
+              
+              document.querySelectorAll('#user-initial, #mobile-user-initial, #mobile-user-initial-sidebar').forEach(el => {
+                el.textContent = userInitial;
+              });
+            }
+          });
+      }
+      
+      // Load admin data
+      loadAdminStats();
+    });
+    
+    function loadAdminStats() {
+      // Load user count
+      firebaseServices.collections.users.get()
+        .then(querySnapshot => {
+          document.getElementById('total-users').textContent = querySnapshot.size;
+        });
+      
+      // Load listings count
+      Promise.all([
+        firebaseServices.collections.houses.get(),
+        firebaseServices.collections.bnbs.get()
+      ]).then(([housesSnapshot, bnbsSnapshot]) => {
+        const totalListings = housesSnapshot.size + bnbsSnapshot.size;
+        document.getElementById('total-listings').textContent = totalListings;
+      });
+      
+      // Load reports count
+      firebaseServices.collections.reports
+        .where('status', '==', 'pending')
+        .get()
+        .then(querySnapshot => {
+          document.getElementById('pending-reports').textContent = querySnapshot.size;
+        });
+      
+      // Placeholder for revenue
+      document.getElementById('total-revenue').textContent = '$1,234';
+    }
+  </script>
+</body>
+</html>

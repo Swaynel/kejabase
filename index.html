@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kejabase - From street cribs to suites, find your suit</title>
+  <meta name="description" content="Find your perfect home or BnB with Kejabase">
+  
+  <link href="./dist/output.css" rel="stylesheet">
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="images/favicon.ico">
+  
+
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow-sm">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="index.html" class="text-xl font-bold text-indigo-600">Kejabase</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="browse.html" class="text-gray-700 hover:text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login-hunter.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="login-provider.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your Property</a>
+        </div>
+        <div class="md:hidden flex items-center">
+          <button id="mobile-menu-button" class="text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="py-20 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold mb-6">From street cribs to suites, find your suit</h1>
+        <p class="text-xl mb-8 max-w-3xl mx-auto">Discover your perfect home or vacation stay with Kejabase's curated listings across all price ranges.</p>
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+          <a href="browse.html" class="bg-white text-indigo-600 px-6 py-3 rounded-md font-medium hover:bg-gray-100">Browse Homes</a>
+          <a href="bnb.html" class="bg-indigo-700 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-800">Explore BnBs</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-center mb-12">How Kejabase Works</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+          <div class="text-center">
+            <div class="bg-indigo-100 w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-medium mb-2">Find Your Place</h3>
+            <p class="text-gray-600">Browse our extensive listings of homes and BnBs with powerful filters.</p>
+          </div>
+          <div class="text-center">
+            <div class="bg-indigo-100 w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-medium mb-2">Book or Contact</h3>
+            <p class="text-gray-600">Book directly or contact the provider to arrange your stay.</p>
+          </div>
+          <div class="text-center">
+            <div class="bg-indigo-100 w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-medium mb-2">Enjoy Your Stay</h3>
+            <p class="text-gray-600">Move in or check in and enjoy your new space with peace of mind.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-gray-800 text-white py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-medium mb-4">Kejabase</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Press</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Discover</h3>
+          <ul class="space-y-2">
+            <li><a href="browse.html" class="text-gray-300 hover:text-white">Homes</a></li>
+            <li><a href="bnb.html" class="text-gray-300 hover:text-white">BnBs</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Popular Areas</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Hosting</h3>
+          <ul class="space-y-2">
+            <li><a href="login-provider.html" class="text-gray-300 hover:text-white">List Your Home</a></li>
+            <li><a href="login-bnb.html" class="text-gray-300 hover:text-white">List Your BnB</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Host Resources</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Support</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">Help Center</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Safety</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 pt-8 border-t border-gray-700">
+        <p>&copy; 2025 Kejabase. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/firebase.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

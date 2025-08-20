@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Details | Kejabase</title>
+  <link href="./dist/output.css" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow-sm">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/browse.html" class="text-gray-700 hover:text-indigo-600">Homes</a>
+          <a href="/bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="/login-hunter.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+        </div>
+        <div class="md:hidden flex items-center">
+          <button id="mobile-menu-button" class="text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden bg-white shadow-md">
+    <div class="px-2 pt-2 pb-3 space-y-1">
+      <a href="/browse.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">Homes</a>
+      <a href="/bnb.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">BnBs</a>
+      <a href="/login-hunter.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">Login</a>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Loading state -->
+    <div id="loading-indicator" class="hidden text-center py-12">
+      <div class="loading-spinner inline-block h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+      <p class="mt-2 text-gray-600">Loading property details...</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="hidden text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap极速赛车开奖直播历史记录" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.966-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">Property not found</h3>
+      <p class="mt-1 text-sm text-gray-500">The property you're looking for doesn't exist or has been removed.</p>
+      <div class="mt-6">
+        <a href="/browse.html" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Browse Properties
+        </a>
+      </div>
+    </div>
+
+    <!-- Property content -->
+    <div id="property-content" class="hidden">
+      <!-- Image gallery -->
+      <div class="mb-8">
+        <div id="gallery" class="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 h-96">
+          <!-- Gallery images will be loaded here -->
+        </div>
+      </div>
+
+      <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Main content -->
+        <div class="w-full lg:w-2/3">
+          <!-- Property header -->
+          <div class="mb-6">
+            <h1 id="property-title" class="text-3xl font-bold text-gray-900 mb-2"></h1>
+            <p id="property-location" class="text-gray-600 mb-4"></p>
+            <div class="flex items-center space-x-4">
+              <span id="property-rating" class="flex items-center text-gray-700">
+                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h极速赛车开奖直播历史记录" />
+                </svg>
+                <span class="ml-1">4.89 · <span id="review-count">24 reviews</span></span>
+              </span>
+              <span id="property-type" class="text-gray-500"></span>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <hr class="my-6">
+
+          <!-- Property details -->
+          <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">About this property</h2>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="flex items-center">
+                <svg class="h-6 w-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 极速赛车开奖直播历史记录" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-500">Bedrooms</p>
+                  <p id="property-bedrooms" class="font-medium"></p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <svg class="h-6 w-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2极速赛车开奖直播历史记录" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-500">Bathrooms</p>
+                  <p id="property-bathrooms" class="font-medium"></p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <svg class="h-6 w-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 极速赛车开奖直播历史记录" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-500">Guests</p>
+                  <p id="property-guests" class="font-medium"></p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <svg class="h-6 w-6 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4a1 1 0 011-1h4M4 8v8a2 2 0 002 2h8a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+                <div>
+                  <p class="text-sm text-gray-500">Square Feet</p>
+                  <p id="property-sqft" class="font-medium"></p>
+                </div>
+              </div>
+            </div>
+            <p id="property-description" class="text-gray-700 leading-relaxed"></p>
+          </div>
+
+          <!-- Amenities -->
+          <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Amenities</h2>
+            <ul id="amenities-list" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Amenities will be loaded here -->
+            </ul>
+          </div>
+
+          <!-- Reviews -->
+          <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Reviews</h2>
+            <div id="reviews-container">
+              <!-- Reviews will be loaded here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Booking sidebar -->
+        <div class="w-full lg:w-1/3">
+          <div class="bg-white p-6 rounded-lg shadow-md sticky top-4">
+            <div class="flex justify-between items-center mb-4">
+              <span id="property-price" class="text-2xl font-bold text-gray-900"></span>
+              <span id="price-period" class="text-gray-600"></span>
+            </div>
+
+            <!-- Booking form -->
+            <form id="booking-form" class="space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="check-in-date" class="block text-sm font-medium text-gray-700">Check-in</label>
+                  <input type="date" id="check-in-date" name="check-in" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                  <label for="check-out-date" class="block text-sm font-medium text-gray-700">Check-out</label>
+                  <input type="date" id="check-out-date" name="check-out" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+              </div>
+              <div>
+                <label for="guests" class="block text-sm font-medium text-gray-700">Guests</label>
+                <select id="guests" name="guests" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="1">1 guest</option>
+                  <option value="2">2 guests</option>
+                  <option value="3">3 guests</option>
+                  <option value="4">4 guests</option>
+                  <option value="5">5 guests</option>
+                  <option value="6">6+ guests</option>
+                </select>
+              </div>
+              <div class="pt-4 border-t border-gray-200">
+                <div class="space-y-2">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">$200 x 5 nights</span>
+                    <span>$1,000</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Cleaning fee</span>
+                    <span>$75</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Service fee</span>
+                    <span>$115</span>
+                  </div>
+                </div>
+                <div class="flex justify-between font-semibold text-lg pt-4 border-t border-gray-200 mt-4">
+                  <span>Total</span>
+                  <span>$1,190</span>
+                </div>
+              </div>
+              <button type="submit" class="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-medium">
+                Book Now
+              </button>
+            </form>
+
+            <!-- Favorite button -->
+            <button id="favorite-button" class="w-full mt-4 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+              Add to Favorites
+            </button>
+
+            <!-- Report button -->
+            <button id="report-button" class="w-full mt-2 text-red-600 py-2 px-4 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm">
+              Report this property
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-white py-12 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-medium mb-4">Kejabase</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Press</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Discover</h3>
+          <ul class="space-y-2">
+            <li><a href="/browse.html" class="text-gray-300 hover:text-white">Homes</a></li>
+            <li><a href="/bnb.html" class="text-gray-300 hover:text-white">BnBs</极速赛车开奖直播历史记录>
+            <li><a href="#" class="text-gray-300 hover:text-white">Popular Areas</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Hosting</h3>
+          <ul class="space-y-2">
+            <li><a href="/login-provider.html" class="text-gray-300 hover:text-white">List Your Home</a></li>
+            <li><a href="/login-bnb.html" class="text-gray-300 hover:text-white">List Your BnB</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Host Resources</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Support</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">Help Center</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Safety</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 pt-8 border-t border-gray-700">
+        <p>&copy; 2023 Kejabase. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/firebase.js"></script>
+  <script src="/js/state.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mobile menu toggle
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+      
+      // Initialize house detail page
+      initHouseDetailPage();
+    });
+  </script>
+</body>
+</html>

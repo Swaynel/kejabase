@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse BnBs | Kejabase</title> 
+  <link href="./dist/output.css" rel="stylesheet">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow-sm">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="/browse.html" class="text-gray-700 hover:text-indigo-600">Homes</a>
+          <a href="/bnb.html" class="text-indigo-600 font-medium">BnBs</a>
+          <a href="/login-hunter.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="/login-bnb.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your BnB</a>
+        </div>
+        <div class="md:hidden flex items-center">
+          <button id="mobile-menu-button" class="text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden bg-white shadow-md">
+    <div class="px-2 pt-2 pb-3 space-y-1">
+      <a href="/browse.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">Homes</a>
+      <a href="/bnb.html" class="bg-gray-100 text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">BnBs</a>
+      <a href="/login-hunter.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">Login</a>
+      <a href="/login-bnb.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">List BnB</a>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Discover Amazing BnBs</h1>
+      <p class="text-gray-600">Find the perfect short-term rental for your next getaway</p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- Filters sidebar -->
+      <div class="w-full lg:w-1/4">
+        <div class="bg-white p-6 rounded-lg shadow-md sticky top-4">
+          <h2 class="text-lg font-medium text-gray-900 mb-4">Filters</h2>
+          
+          <!-- Location filter -->
+          <div class="mb-6">
+            <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+            <input type="text" id="location" placeholder="City, neighborhood, or ZIP" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          </div>
+
+          <!-- Price range -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Price Range (per night)</label>
+            <div class="flex space-x-2">
+              <input type="number" id="min-price" placeholder="Min" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              <input type="number" id="max-price" placeholder="Max" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+          </div>
+
+          <!-- Property type -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="entire-home">
+                <span class="ml-2 text-sm text-gray-700">Entire Home</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="private-room">
+                <span class="ml-2 text-sm text-gray-700">Private Room</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="shared-room">
+                <span class="ml-2 text-sm text-gray-700">Shared Room</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Bedrooms -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Bedrooms</label>
+            <select id="bedrooms" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
+            </select>
+          </div>
+
+          <!-- Guests -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+            <select id="guests" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="">Any</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="4">4+</option>
+              <option value="6">6+</option>
+              <option value="8">8+</option>
+            </select>
+          </div>
+
+          <!-- Amenities -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="wifi">
+                <span class="ml-2 text-sm text-gray-700">WiFi</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="kitchen">
+                <span class="ml-2 text-sm text-gray-700">Kitchen</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="pool">
+                <span class="ml-2 text-sm text-gray-700">Pool</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="ac">
+                <span class="ml-2 text-sm text-gray-700">Air Conditioning</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Dates</label>
+            <div class="space-y-2">
+              <div>
+                <label for="check-in" class="block text-xs text-gray-500">Check-in</label>
+                <input type="date" id="check-in" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+              <div>
+                <label for="check-out" class="block text-xs text-gray-500">Check-out</label>
+                <input type="date" id="check-out" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+
+          <button id="apply-filters" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Apply Filters
+          </button>
+          <button id="reset-filters" class="w-full mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      <!-- Listings grid -->
+      <div class="w-full lg:w-3/4">
+        <div class="flex justify-between items-center mb-6">
+          <p class="text-gray-600" id="results-count">Showing <span id="results-number">0</span> results</p>
+          <div class="flex items-center space-x-2">
+            <label for="sort" class="text-sm font-medium text-gray-700">Sort by:</label>
+            <select id="sort" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="newest">Newest</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Rating</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="loading-indicator" class="hidden text-center py-12">
+          <div class="loading-spinner inline-block h-8 w-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p class="mt-2 text-gray-600">Loading BnBs...</p>
+        </div>
+
+        <div id="bnbs-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- BnBs will be loaded here -->
+        </div>
+
+        <div id="no-results" class="hidden text-center py-12">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">No BnBs found</h3>
+          <p class="mt-1 text-sm text-gray-500">Try adjusting your search filters</p>
+        </div>
+
+        <div id="pagination" class="mt-8 flex justify-center hidden">
+          <nav class="flex items-center space-x-2">
+            <button class="px-3 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Previous</button>
+            <button class="px-3 py-2 rounded-md bg-indigo-600 text-white">1</button>
+            <button class="px-3 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">2</button>
+            <button class="px-3 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">3</button>
+            <button class="px-3 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Next</button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-gray-800 text-white py-12 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div>
+          <h3 class="text-lg font-medium mb-4">Kejabase</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">About Us</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Press</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Discover</h3>
+          <ul class="space-y-2">
+            <li><a href="/browse.html" class="text-gray-300 hover:text-white">Homes</a></li>
+            <li><a href="/bnb.html" class="text-gray-300 hover:text-white">BnBs</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Popular Areas</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Hosting</h3>
+          <ul class="space-y-2">
+            <li><a href="/login-provider.html" class="text-gray-300 hover:text-white">List Your Home</a></li>
+            <li><a href="/login-bnb.html" class="text-gray-300 hover:text-white">List Your BnB</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Host Resources</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-lg font-medium mb-4">Support</h3>
+          <ul class="space-y-2">
+            <li><a href="#" class="text-gray-300 hover:text-white">Help Center</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Safety</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-12 pt-8 border-t border-gray-700">
+        <p>&copy; 2023 Kejabase. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/firebase.js"></script>
+  <script src="/js/state.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Mobile menu toggle
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      
+      if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+          mobileMenu.classList.toggle('hidden');
+        });
+      }
+      
+      // Initialize BnB page
+      if (typeof initBnbPage === "function") {
+        initBnbPage();
+      }
+    });
+  </script>
+</body>
+</html>

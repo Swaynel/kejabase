@@ -9,7 +9,6 @@ const CORE_ASSETS = [
   '/js/app.js',
   '/js/firebase.js',
   '/js/state.js',
-  '/images/logo.png',
   '/images/icon-192.png',
   '/images/icon-512.png'
 ];

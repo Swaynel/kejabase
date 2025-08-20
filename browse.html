@@ -4,21 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Browse Homes | Kejabase</title>
+  <meta name="description" content="Browse and find your perfect home or apartment with Kejabase">
+
+  <!-- Tailwind CSS -->
   <link href="./dist/output.css" rel="stylesheet">
-  <link rel="manifest" href="/manifest.json">
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4F46E5">
+
+  <!-- Favicon and PWA icons -->
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="192x192" href="images/icon-192.png">
 </head>
 <body class="bg-gray-50">
+
+  <!-- Header / Navbar -->
   <header class="bg-white shadow-sm">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center">
-          <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
+          <a href="index.html" class="text-xl font-bold text-indigo-600">Kejabase</a>
         </div>
         <div class="hidden md:flex items-center space-x-8">
-          <a href="/browse.html" class="text-indigo-600 font-medium">Browse Homes</a>
-          <a href="/bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
-          <a href="/login-hunter.html" class="text-gray-700 hover:text-indigo-600">Login</a>
-          <a href="/login-provider.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your Property</a>
+          <a href="browse.html" class="text-indigo-600 font-medium">Browse Homes</a>
+          <a href="bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="login.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your Property</a>
         </div>
         <div class="md:hidden flex items-center">
           <button id="mobile-menu-button" class="text-gray-700">
@@ -28,38 +40,38 @@
           </button>
         </div>
       </div>
+
+      <!-- Mobile menu (hidden by default) -->
+      <div id="mobile-menu" class="md:hidden hidden">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+          <a href="browse.html" class="block px-3 py-2 text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="login.html" class="block px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 mx-3">List Your Property</a>
+        </div>
+      </div>
     </nav>
   </header>
 
-  <!-- Mobile menu -->
-  <div id="mobile-menu" class="hidden md:hidden bg-white shadow-md">
-    <div class="px-2 pt-2 pb-3 space-y-1">
-      <a href="/browse.html" class="bg-gray-100 text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">Browse Homes</a>
-      <a href="/bnb.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">BnBs</a>
-      <a href="/login-hunter.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px极速赛车开奖直播历史记录 rounded-md text-base font-medium">Login</a>
-      <a href="/login-provider.html" class="text-gray-700 hover:bg-gray-50 hover:text-indigo-600 block px-3 py-2 rounded-md text-base font-medium">List Property</a>
-    </div>
-  </div>
-
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">Find Your Perfect Home</h1>
-      <p class="text-gray-600">Browse through our curated selection of homes and apartments</p>
-    </div>
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <h1 class="text-3xl font-bold text-gray-900 mb-6">Find Your Perfect Home</h1>
+    <p class="text-gray-600 mb-8">Use the filters to narrow down your search and find exactly what you're looking for.</p>
 
     <div class="flex flex-col lg:flex-row gap-8">
-      <!-- Filters sidebar -->
-      <div class="w-full lg:w-1/4">
+
+      <!-- Filters Sidebar -->
+      <aside class="w-full lg:w-1/4">
         <div class="bg-white p-6 rounded-lg shadow-md sticky top-4">
           <h2 class="text-lg font-medium text-gray-900 mb-4">Filters</h2>
-          
-          <!-- Location filter -->
+
+          <!-- Location -->
           <div class="mb-6">
             <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location</label>
             <input type="text" id="location" placeholder="City, neighborhood, or ZIP" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
           </div>
 
-          <!-- Price range -->
+          <!-- Price Range -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
             <div class="flex space-x-2">
@@ -68,24 +80,24 @@
             </div>
           </div>
 
-          <!-- Property type -->
+          <!-- Property Type -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
             <div class="space-y-2">
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="apartment">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="apartment">
                 <span class="ml-2 text-sm text-gray-700">Apartment</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="house">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="house">
                 <span class="ml-2 text-sm text-gray-700">House</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="condo">
-                <span class="ml-2 text-sm text极速赛车开奖直播历史记录">Condo</span>
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="condo">
+                <span class="ml-2 text-sm text-gray-700">Condo</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="townhouse">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="townhouse">
                 <span class="ml-2 text-sm text-gray-700">Townhouse</span>
               </label>
             </div>
@@ -121,35 +133,31 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
             <div class="space-y-2">
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="wifi">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="wifi">
                 <span class="ml-2 text-sm text-gray-700">WiFi</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="parking">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="parking">
                 <span class="ml-2 text-sm text-gray-700">Parking</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="laundry">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="laundry">
                 <span class="ml-2 text-sm text-gray-700">Laundry</span>
               </label>
               <label class="flex items-center">
-                <input type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" value="furnished">
+                <input type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded" value="furnished">
                 <span class="ml-2 text-sm text-gray-700">Furnished</span>
               </label>
             </div>
           </div>
 
-          <button id="apply-filters" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            Apply Filters
-          </button>
-          <button id="reset-filters" class="w-full mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-            Reset Filters
-          </button>
+          <button id="apply-filters" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700">Apply Filters</button>
+          <button id="reset-filters" class="w-full mt-2 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300">Reset Filters</button>
         </div>
-      </div>
+      </aside>
 
-      <!-- Listings grid -->
-      <div class="w-full lg:w-3/4">
+      <!-- Listings Grid -->
+      <section class="w-full lg:w-3/4">
         <div class="flex justify-between items-center mb-6">
           <p class="text-gray-600" id="results-count">Showing <span id="results-number">0</span> results</p>
           <div class="flex items-center space-x-2">
@@ -169,12 +177,12 @@
         </div>
 
         <div id="listings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Listings will be loaded here -->
+          <!-- Listings dynamically loaded here -->
         </div>
 
         <div id="no-results" class="hidden text-center py-12">
           <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 极速赛车开奖直播历史记录" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <h3 class="mt-2 text-sm font-medium text-gray-900">No listings found</h3>
           <p class="mt-1 text-sm text-gray-500">Try adjusting your search filters</p>
@@ -189,11 +197,13 @@
             <button class="px-3 py-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300">Next</button>
           </nav>
         </div>
-      </div>
+      </section>
+
     </div>
   </main>
 
-  <footer class="bg-gray-800 text-white py-12 mt-12">
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
         <div>
@@ -207,16 +217,16 @@
         <div>
           <h3 class="text-lg font-medium mb-4">Discover</h3>
           <ul class="space-y-2">
-            <li><a href="/browse.html" class="text-gray-300 hover:text-white">Homes</a></li>
-            <li><a href="/bnb.html" class="text-gray-300 hover:text-white">BnBs</a></li>
+            <li><a href="browse.html" class="text-gray-300 hover:text-white">Homes</a></li>
+            <li><a href="bnb.html" class="text-gray-300 hover:text-white">BnBs</a></li>
             <li><a href="#" class="text-gray-300 hover:text-white">Popular Areas</a></li>
           </ul>
         </div>
         <div>
           <h3 class="text-lg font-medium mb-4">Hosting</h3>
           <ul class="space-y-2">
-            <li><a href="/login-provider.html" class="text-gray-300 hover:text-white">List Your Home</a></li>
-            <li><a href="/login-bnb.html" class="text-gray-300 hover:text-white">List Your BnB</a></li>
+            <li><a href="add-house.html" class="text-gray-300 hover:text-white">List Your Home</a></li>
+            <li><a href="add-bnb.html" class="text-gray-300 hover:text-white">List Your BnB</a></li>
             <li><a href="#" class="text-gray-300 hover:text-white">Host Resources</a></li>
           </ul>
         </div>
@@ -224,35 +234,45 @@
           <h3 class="text-lg font-medium mb-4">Support</h3>
           <ul class="space-y-2">
             <li><a href="#" class="text-gray-300 hover:text-white">Help Center</a></li>
-            <li><a href="#" class="text极速赛车开奖直播历史记录">Safety</a></li>
+            <li><a href="#" class="text-gray-300 hover:text-white">Safety</a></li>
             <li><a href="#" class="text-gray-300 hover:text-white">Contact Us</a></li>
           </ul>
         </div>
       </div>
       <div class="mt-12 pt-8 border-t border-gray-700">
-        <p>&copy; 2023 Kejabase. All rights reserved.</p>
+        <p>&copy; 2025 Kejabase. All rights reserved.</p>
       </div>
     </div>
   </footer>
 
-  <script src="/js/firebase.js"></script>
-  <script src="/js/state.js"></script>
-  <script src="/js/app.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+  <script src="js/firebase.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/authService.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Mobile menu toggle
-      const mobileMenuButton = document.getElementById('mobile-menu-button');
+    document.getElementById('mobile-menu-button').addEventListener('click', function() {
       const mobileMenu = document.getElementById('mobile-menu');
-      
-      if (mobileMenuButton && mobileMenu) {
-        mobileMenuButton.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
-      
-      // Initialize browse page
-      initBrowsePage();
+      mobileMenu.classList.toggle('hidden');
     });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/service-worker.js')
+          .then((reg) => console.log('ServiceWorker registered:', reg))
+          .catch((err) => console.error('ServiceWorker registration failed:', err));
+      });
+    }
   </script>
+
 </body>
 </html>

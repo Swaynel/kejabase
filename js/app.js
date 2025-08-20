@@ -256,7 +256,7 @@ function renderListings(listings) {
     el.innerHTML = `
       <a href="/house-detail.html?id=${listing.id}">
         <div class="relative">
-          <img src="${listing.images?.[0] || '/images/placeholder.jpg'}" alt="${listing.title}" class="w-full h-48 object-cover">
+          <img src="${listing.images && listing.images[0] ? listing.images[0] : '/images/placeholder.jpg'}" alt="${listing.title}" class="w-full h-48 object-cover">
           <div class="absolute top-2 right-2">
             <button class="favorite-btn p-2 bg-white rounded-full shadow-md" data-id="${listing.id}">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${
@@ -279,11 +279,14 @@ function renderListings(listings) {
     container.appendChild(el);
 
     // Favorite button event
-    el.querySelector(".favorite-btn")?.addEventListener("click", (e) => {
-      e.preventDefault();
-      state.toggleFavorite(listing.id);
-      renderListings(listings);
-    });
+    const favBtn = el.querySelector(".favorite-btn");
+    if (favBtn) {
+      favBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        state.toggleFavorite(listing.id);
+        renderListings(listings);
+      });
+    }
   });
 }
 
@@ -292,79 +295,45 @@ function renderListings(listings) {
 // ==============================
 function renderListingDetail(listing) {
   if (!listing) return;
+
   document.title = `${listing.title} | Kejabase`;
 
-  const titleElement = document.getElementById("listing-title");
-  const locationElement = document.getElementById("listing-location");
-  const priceElement = document.getElementById("listing-price");
-  
-  if (titleElement) titleElement.textContent = listing.title;
-  if (locationElement) locationElement.textContent = listing.location;
-  if (priceElement) {
-    priceElement.textContent = `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
-  }
+  document.getElementById("listing-title")?.textContent = listing.title;
+  document.getElementById("listing-location")?.textContent = listing.location;
+  document.getElementById("listing-price")?.textContent =
+    `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
 
   // Gallery
   const gallery = document.getElementById("listing-gallery");
   if (gallery) {
     gallery.innerHTML = "";
-    listing.images?.forEach((img) => {
-      const div = document.createElement("div");
-      div.className = "rounded-lg overflow-hidden";
-      div.innerHTML = `<img src="${img}" alt="${listing.title}" class="w-full h-full object-cover">`;
-      gallery.appendChild(div);
-    });
+    if (listing.images && listing.images.length > 0) {
+      listing.images.forEach((img) => {
+        const div = document.createElement("div");
+        div.className = "rounded-lg overflow-hidden";
+        div.innerHTML = `<img src="${img}" alt="${listing.title}" class="w-full h-full object-cover">`;
+        gallery.appendChild(div);
+      });
+    }
   }
 
   // Tags / amenities
   const amenities = document.getElementById("amenities-list");
   if (amenities) {
     amenities.innerHTML = "";
-    listing.tags?.forEach((tag) => {
-      const li = document.createElement("li");
-      li.className = "flex items-center space-x-2";
-      li.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-        </svg>
-        <span>${tag}</span>`;
-      amenities.appendChild(li);
-    });
-  }
-
-  const descriptionElement = document.getElementById("listing-description");
-  if (descriptionElement) {
-    descriptionElement.textContent = listing.description;
-  }
-}
-
-// ==============================
-// Dashboard Page
-// ==============================
-function initDashboardPage() {
-  // Dashboard-specific initialization
-  console.log("Dashboard page initialized");
-}
-
-// ==============================
-// UI State Sync
-// ==============================
-function updateUIFromState() {
-  // Update auth-related UI
-  const authElements = document.querySelectorAll("[data-auth]");
-  authElements.forEach(el => {
-    const authState = el.getAttribute("data-auth");
-    if (authState === "authenticated") {
-      el.style.display = state.AppState.currentUser ? "block" : "none";
-    } else if (authState === "unauthenticated") {
-      el.style.display = state.AppState.currentUser ? "none" : "block";
+    if (listing.tags && listing.tags.length > 0) {
+      listing.tags.forEach((tag) => {
+        const li = document.createElement("li");
+        li.className = "flex items-center space-x-2";
+        li.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+          </svg>
+          <span>${tag}</span>`;
+        amenities.appendChild(li);
+      });
     }
-  });
+  }
 
-  // Update role-based UI
-  const roleElements = document.querySelectorAll("[data-role]");
-  roleElements.forEach(el => {
-    const requiredRole = el.getAttribute("data-role");
-    el.style.display = state.AppState.role === requiredRole ? "block" : "none";
-  });
+  document.getElementById("listing-description")?.textContent = listing.description;
 }

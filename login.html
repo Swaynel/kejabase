@@ -4,24 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kejabase Login</title>
+  <meta name="description" content="Login to Kejabase to browse homes, BnBs, and manage your listings">
+
+  <!-- Tailwind CSS -->
   <link href="./dist/output.css" rel="stylesheet">
-  <link rel="manifest" href="/manifest.json">
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4F46E5">
+
+  <!-- Favicon -->
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="192x192" href="images/icon-192.png">
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
+  <!-- Header / Navbar -->
   <header class="bg-white shadow-sm">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
         <div class="flex items-center">
-          <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
+          <a href="index.html" class="text-xl font-bold text-indigo-600">Kejabase</a>
+        </div>
+        <div class="hidden md:flex items-center space-x-8">
+          <a href="browse.html" class="text-gray-700 hover:text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="add-house.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">List Your Property</a>
+        </div>
+        <div class="md:hidden flex items-center">
+          <button id="mobile-menu-button" class="text-gray-700">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div id="mobile-menu" class="md:hidden hidden">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+          <a href="browse.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">Browse Homes</a>
+          <a href="bnb.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">BnBs</a>
+          <a href="login.html" class="block px-3 py-2 text-gray-700 hover:text-indigo-600">Login</a>
+          <a href="add-house.html" class="block px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 mx-3">List Your Property</a>
         </div>
       </div>
     </nav>
   </header>
 
-  <main class="flex-grow flex items-center justify-center">
+  <!-- Login Section -->
+  <main class="flex-grow flex items-center justify-center py-16">
     <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-      <h1 class="text-2xl font-bold text-center mb-6">Login Portal</h1>
+      <h1 class="text-3xl font-bold text-center mb-6 text-indigo-600">Sign in to Kejabase</h1>
 
       <form id="login-form" class="space-y-4">
         <div>
@@ -51,17 +84,52 @@
         <div id="error-message" class="mt-4 hidden text-sm text-red-600"></div>
         <div id="success-message" class="mt-4 hidden text-sm text-green-600"></div>
       </form>
+
+      <p class="mt-6 text-center text-gray-600 text-sm">
+        Don't have an account? <a href="register.html" class="text-indigo-600 hover:text-indigo-500 font-medium">Sign up</a>
+      </p>
     </div>
   </main>
 
-  <footer class="bg-gray-800 text-white py-8">
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <p>&copy; 2023 Kejabase. All rights reserved.</p>
+      <p>&copy; 2025 Kejabase. All rights reserved.</p>
     </div>
   </footer>
 
-  <!-- Firebase + AuthService -->
-  <script src="/js/firebase.js"></script>
-  <script src="/js/authService.js"></script>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Local Firebase initialization -->
+  <script src="js/firebase.js"></script>
+
+  <!-- App scripts -->
+  <script src="js/state.js"></script>
+  <script src="js/authService.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Mobile menu toggle -->
+  <script>
+    document.getElementById('mobile-menu-button').addEventListener('click', function() {
+      document.getElementById('mobile-menu').classList.toggle('hidden');
+    });
+  </script>
+
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/service-worker.js')
+          .then((reg) => console.log('ServiceWorker registered:', reg))
+          .catch((err) => console.error('ServiceWorker registration failed:', err));
+      });
+    }
+  </script>
+
 </body>
 </html>

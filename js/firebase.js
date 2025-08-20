@@ -1,25 +1,4 @@
-// ==============================
-// Modular Firebase Initialization (v9+)
-// ==============================
-import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
-import {
-  getFirestore,
-  initializeFirestore,
-  enableIndexedDbPersistence,
-  CACHE_SIZE_UNLIMITED,
-  collection,
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove,
-  increment,
-  Timestamp
-} from "firebase/firestore";
-import { getStorage } from "firebase/storage";
-
-// ==============================
-// Firebase Config
-// ==============================
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsE-FHOqm9LRmC4ug82YeJ6Nyw8C1zWrc",
   authDomain: "kejabase.firebaseapp.com",
@@ -30,55 +9,33 @@ const firebaseConfig = {
   measurementId: "G-JTFBB4SG03"
 };
 
-// ==============================
-// Initialize App
-// ==============================
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 
-// ==============================
-// Initialize Firestore with settings first
-// ==============================
-const db = initializeFirestore(app, {
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED,
-  experimentalForceLongPolling: true
-});
+// Services
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
 
-// Enable offline persistence safely
-enableIndexedDbPersistence(db).catch((err) => {
+// Enable offline persistence
+db.enablePersistence().catch(err => {
   if (err.code === 'failed-precondition') {
-    console.warn("⚠️ Multiple tabs open; persistence can only be enabled in one tab.");
+    console.warn("⚠️ Multiple tabs open; persistence only works in one tab.");
   } else if (err.code === 'unimplemented') {
     console.warn("⚠️ Persistence is not supported in this browser.");
   }
 });
 
-// ==============================
-// Initialize Auth and set persistence
-// ==============================
-const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence)
-  .then(() => console.log("✅ Auth persistence set to LOCAL"))
-  .catch(err => console.error("❌ Auth persistence error:", err));
+// Collections
+const usersCollection = db.collection('users');
+const housesCollection = db.collection('houses');
+const bnbsCollection = db.collection('bnbs');
+const bookingsCollection = db.collection('bookings');
+const feedbackCollection = db.collection('feedback');
+const reportsCollection = db.collection('reports');
 
-// ==============================
-// Initialize Storage
-// ==============================
-const storage = getStorage(app);
-
-// ==============================
-// Collections (modular)
-// ==============================
-const usersCollection = collection(db, 'users');
-const housesCollection = collection(db, 'houses');
-const bnbsCollection = collection(db, 'bnbs');
-const bookingsCollection = collection(db, 'bookings');
-const feedbackCollection = collection(db, 'feedback');
-const reportsCollection = collection(db, 'reports');
-
-// ==============================
-// Utility functions
-// ==============================
-const firebaseServices = {
+// Utilities
+window.firebaseServices = {
   auth,
   db,
   storage,
@@ -90,11 +47,11 @@ const firebaseServices = {
     feedback: feedbackCollection,
     reports: reportsCollection
   },
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove,
-  increment,
-  toTimestamp: (date) => Timestamp.fromDate(date),
+  serverTimestamp: firebase.firestore.FieldValue.serverTimestamp,
+  arrayUnion: firebase.firestore.FieldValue.arrayUnion,
+  arrayRemove: firebase.firestore.FieldValue.arrayRemove,
+  increment: firebase.firestore.FieldValue.increment,
+  toTimestamp: (date) => firebase.firestore.Timestamp.fromDate(date),
   handleError: (error) => {
     console.error("Firebase Error:", error);
     const messages = {
@@ -106,9 +63,4 @@ const firebaseServices = {
   }
 };
 
-// ==============================
-// Export globally
-// ==============================
-window.firebaseServices = firebaseServices;
-
-console.log("🔥 Modular Firebase services loaded successfully");
+console.log("🔥 Firebase v9 compat services loaded successfully");

@@ -60,26 +60,30 @@
     </div>
   </footer>
 
+  <!-- Firebase + AuthService scripts -->
   <script src="/js/firebase.js"></script>
-  <script src="/js/auth.js"></script>
+  <script src="/js/authService.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const loginForm = document.getElementById('login-form');
-      
-      loginForm.addEventListener('submit', function(e) {
+      const errorMessage = document.getElementById('error-message');
+
+      loginForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const rememberMe = document.getElementById('remember-me').checked;
-        
-        auth.signInWithEmailAndPassword(email, password, 'hunter', rememberMe)
+
+        // ✅ use authService now
+        authService.signInWithEmailAndPassword(email, password, 'hunter', rememberMe)
           .then(() => {
             window.location.href = '/dashboard-hunter.html';
           })
           .catch(error => {
-            document.getElementById('error-message').textContent = error.message;
-            document.getElementById('error-message').classList.remove('hidden');
+            errorMessage.textContent = error.message;
+            errorMessage.classList.remove('hidden');
           });
       });
     });

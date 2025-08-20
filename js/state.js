@@ -1,170 +1,155 @@
-// Global application state
+// ==============================
+// Global Application State
+// ==============================
 const AppState = {
   currentUser: null,
-  userRole: null,
+  role: null,
   listings: [],
-  filteredListings: [],
-  activeFilters: {
-    location: '',
-    minPrice: 0,
-    maxPrice: Infinity,
-    tags: []
+  filters: {
+    location: "",
+    type: "",
+    priceRange: null,
   },
   favorites: [],
-  isLoading: false,
-  error: null
+  error: null,
 };
 
-// Update state and sync UI
+// ==============================
+// Persistence Helpers
+// ==============================
+function saveStateToStorage() {
+  try {
+    const stateToSave = {
+      currentUser: AppState.currentUser,
+      role: AppState.role,
+      favorites: AppState.favorites,
+    };
+    localStorage.setItem("appState", JSON.stringify(stateToSave));
+  } catch (e) {
+    console.error("Error saving state:", e);
+  }
+}
+
+function loadStateFromStorage() {
+  try {
+    const saved = localStorage.getItem("appState");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      AppState.currentUser = parsed.currentUser || null;
+      AppState.role = parsed.role || null;
+      AppState.favorites = parsed.favorites || [];
+    }
+  } catch (e) {
+    console.error("Error loading state:", e);
+  }
+}
+
+// ==============================
+// State Updater
+// ==============================
 function updateState(newState) {
   Object.assign(AppState, newState);
-  updateUIFromState();
+  saveStateToStorage(); // persist after every update
+  console.log("State updated:", AppState);
 }
 
-// Get current state
-function getState() {
-  return AppState;
-}
-
-// Reset filters to default
+// ==============================
+// Filter Helpers
+// ==============================
 function resetFilters() {
-  AppState.activeFilters = {
-    location: '',
-    minPrice: 0,
-    maxPrice: Infinity,
-    tags: []
-  };
-  AppState.filteredListings = AppState.listings;
-  updateUIFromState();
+  AppState.filters = { location: "", type: "", priceRange: null };
+  saveStateToStorage();
 }
 
-// Apply filters to listings
 function applyFilters() {
-  const { location, minPrice, maxPrice, tags } = AppState.activeFilters;
-  
-  AppState.filteredListings = AppState.listings.filter(listing => {
-    const matchesLocation = !location || 
-      listing.location.toLowerCase().includes(location.toLowerCase());
-    const matchesPrice = listing.price >= minPrice && listing.price <= maxPrice;
-    const matchesTags = tags.length === 0 || 
-      tags.every(tag => listing.tags.includes(tag));
-    
-    return matchesLocation && matchesPrice && matchesTags;
+  return AppState.listings.filter((listing) => {
+    const { location, type, priceRange } = AppState.filters;
+
+    const matchesLocation = location
+      ? listing.location?.toLowerCase().includes(location.toLowerCase())
+      : true;
+    const matchesType = type ? listing.type === type : true;
+    const matchesPrice = priceRange
+      ? listing.price >= priceRange[0] && listing.price <= priceRange[1]
+      : true;
+
+    return matchesLocation && matchesType && matchesPrice;
   });
-  
-  updateUIFromState();
 }
 
-// Toggle favorite status for a listing
+// ==============================
+// Favorites Management
+// ==============================
 function toggleFavorite(listingId) {
-  const index = AppState.favorites.indexOf(listingId);
-  if (index === -1) {
-    AppState.favorites.push(listingId);
+  const idx = AppState.favorites.indexOf(listingId);
+  if (idx > -1) {
+    AppState.favorites.splice(idx, 1);
   } else {
-    AppState.favorites.splice(index, 1);
+    AppState.favorites.push(listingId);
   }
-  updateUIFromState();
-  
-  // Save favorites to Firestore if user is logged in
-  if (AppState.currentUser) {
-    firebaseServices.collections.users
-      .doc(AppState.currentUser.uid)
-      .update({
-        favorites: AppState.favorites
-      })
-      .catch(error => {
-        console.error("Error updating favorites:", error);
-      });
-  }
+  saveStateToStorage();
 }
 
-// Initialize state from Firebase
+// ==============================
+// Firebase Integration
+// ==============================
 async function initializeState() {
   try {
-    updateState({ isLoading: true });
-    
-    // Load listings
-    const housesSnapshot = await firebaseServices.collections.houses.get();
-    const bnbsSnapshot = await firebaseServices.collections.bnbs.get();
-    
-    const houses = housesSnapshot.docs.map(doc => ({
+    // Fetch houses + bnbs
+    const [housesSnap, bnbsSnap] = await Promise.all([
+      firebaseServices.firestore.collection("houses").get(),
+      firebaseServices.firestore.collection("bnbs").get(),
+    ]);
+
+    const houses = housesSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      type: 'house'
+      type: "house",
     }));
-    
-    const bnbs = bnbsSnapshot.docs.map(doc => ({
+
+    const bnbs = bnbsSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      type: 'bnb'
+      type: "bnb",
     }));
-    
-    const allListings = [...houses, ...bnbs];
-    
-    updateState({ 
-      listings: allListings,
-      filteredListings: allListings,
-      isLoading: false 
-    });
-    
-    // Load user favorites if logged in
-    if (AppState.currentUser) {
-      const userDoc = await firebaseServices.collections.users
-        .doc(AppState.currentUser.uid)
-        .get();
-      
-      if (userDoc.exists) {
-        updateState({ 
-          favorites: userDoc.data().favorites || [] 
-        });
-      }
-    }
-  } catch (error) {
-    updateState({ 
-      isLoading: false,
-      error: error.message 
-    });
+
+    updateState({ listings: [...houses, ...bnbs] });
+  } catch (err) {
+    console.error("Error initializing state:", err);
+    AppState.error = err.message || "Error loading listings";
   }
 }
 
-// Listen for auth state changes
-firebaseServices.auth.onAuthStateChanged(user => {
+// ==============================
+// Auth State Watcher
+// ==============================
+firebaseServices.auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // User is signed in
-    firebaseServices.collections.users
-      .doc(user.uid)
-      .get()
-      .then(doc => {
-        if (doc.exists) {
-          updateState({
-            currentUser: user,
-            userRole: doc.data().role,
-            favorites: doc.data().favorites || []
-          });
-        } else {
-          // User doc doesn't exist, sign them out
-          firebaseServices.auth.signOut();
-        }
-      })
-      .catch(error => {
-        console.error("Error getting user document:", error);
-      });
-  } else {
-    // User is signed out
+    // Always fetch fresh user data from Firestore
+    const userDoc = await firebaseServices.firestore.collection("users").doc(user.uid).get();
+    const userData = userDoc.data();
+
     updateState({
-      currentUser: null,
-      userRole: null,
-      favorites: []
+      currentUser: { uid: user.uid, ...userData },
+      role: userData?.role || "guest",
     });
+  } else {
+    updateState({ currentUser: null, role: null });
   }
 });
 
-// Expose state functions to global scope
+// ==============================
+// Initialize on Page Load
+// ==============================
+loadStateFromStorage();  // restore state before Firebase re-checks auth
+initializeState();       // load listings
+
+// Expose state globally
 window.state = {
+  AppState,
   updateState,
-  getState,
   resetFilters,
   applyFilters,
   toggleFavorite,
-  initializeState
+  initializeState,
 };

@@ -113,60 +113,55 @@
   <script src="/js/firebase.js"></script>
   <script src="/js/authService.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const registerForm = document.getElementById('register-form');
+  document.addEventListener('DOMContentLoaded', function() {
 
-      registerForm.addEventListener('submit', function(e) {
-        e.preventDefault();
+    // Auto-redirect if already logged in
+    authService.checkAuthAndRedirect().then(({ isAuthenticated, dashboard }) => {
+      if (isAuthenticated && dashboard) window.location.href = dashboard;
+    });
 
-        const role = document.getElementById('role').value;
-        const name = document.getElementById('name').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        const phone = document.getElementById('phone').value;
-        const preferredLocation = document.getElementById('preferred-location').value;
+    const registerForm = document.getElementById('register-form');
+    registerForm.addEventListener('submit', function(e) {
+      e.preventDefault();
 
-        if (password !== confirmPassword) {
-          const error = document.getElementById('error-message');
-          error.textContent = "Passwords don't match";
-          error.classList.remove('hidden');
-          return;
+      const role = document.getElementById('role').value;
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      const phone = document.getElementById('phone').value;
+      const preferredLocation = document.getElementById('preferred-location').value;
+      const errorDiv = document.getElementById('error-message');
+
+      errorDiv.classList.add('hidden');
+
+      if (password !== confirmPassword) {
+        errorDiv.textContent = "Passwords don't match";
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      authService.createUserWithEmailAndPassword(email, password, {
+        name, email, phone, preferredLocation, role,
+        favorites: [], searchHistory: [],
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      })
+      .then(({ role }) => {
+        let dashboard;
+        switch(role) {
+          case 'hunter': dashboard = '/dashboard-hunter.html'; break;
+          case 'provider': dashboard = '/dashboard-provider.html'; break;
+          case 'bnb': dashboard = '/dashboard-bnb.html'; break;
+          default: dashboard = '/'; break;
         }
-
-        authService.registerWithEmailAndPassword(email, password, {
-          name,
-          email,
-          phone,
-          preferredLocation: preferredLocation || '',
-          role,
-          favorites: [],
-          searchHistory: [],
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        })
-        .then(() => {
-          // Redirect based on role
-          switch(role) {
-            case 'hunter':
-              window.location.href = '/dashboard-hunter.html';
-              break;
-            case 'provider':
-              window.location.href = '/dashboard-provider.html';
-              break;
-            case 'bnb':
-              window.location.href = '/dashboard-bnb.html';
-              break;
-            default:
-              window.location.href = '/';
-          }
-        })
-        .catch(error => {
-          const err = document.getElementById('error-message');
-          err.textContent = error.message;
-          err.classList.remove('hidden');
-        });
+        window.location.href = dashboard;
+      })
+      .catch(error => {
+        errorDiv.textContent = error.message;
+        errorDiv.classList.remove('hidden');
       });
     });
+  });
   </script>
 
 </body>

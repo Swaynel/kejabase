@@ -294,10 +294,15 @@ function renderListingDetail(listing) {
   if (!listing) return;
   document.title = `${listing.title} | Kejabase`;
 
-  document.getElementById("listing-title")?.textContent = listing.title;
-  document.getElementById("listing-location")?.textContent = listing.location;
-  document.getElementById("listing-price")?.textContent =
-    `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
+  const titleElement = document.getElementById("listing-title");
+  const locationElement = document.getElementById("listing-location");
+  const priceElement = document.getElementById("listing-price");
+  
+  if (titleElement) titleElement.textContent = listing.title;
+  if (locationElement) locationElement.textContent = listing.location;
+  if (priceElement) {
+    priceElement.textContent = `$${listing.price}${listing.type === "bnb" ? "/night" : "/month"}`;
+  }
 
   // Gallery
   const gallery = document.getElementById("listing-gallery");
@@ -327,5 +332,39 @@ function renderListingDetail(listing) {
     });
   }
 
-  document.getElementById("listing-description")?.textContent = listing.description;
+  const descriptionElement = document.getElementById("listing-description");
+  if (descriptionElement) {
+    descriptionElement.textContent = listing.description;
+  }
+}
+
+// ==============================
+// Dashboard Page
+// ==============================
+function initDashboardPage() {
+  // Dashboard-specific initialization
+  console.log("Dashboard page initialized");
+}
+
+// ==============================
+// UI State Sync
+// ==============================
+function updateUIFromState() {
+  // Update auth-related UI
+  const authElements = document.querySelectorAll("[data-auth]");
+  authElements.forEach(el => {
+    const authState = el.getAttribute("data-auth");
+    if (authState === "authenticated") {
+      el.style.display = state.AppState.currentUser ? "block" : "none";
+    } else if (authState === "unauthenticated") {
+      el.style.display = state.AppState.currentUser ? "none" : "block";
+    }
+  });
+
+  // Update role-based UI
+  const roleElements = document.querySelectorAll("[data-role]");
+  roleElements.forEach(el => {
+    const requiredRole = el.getAttribute("data-role");
+    el.style.display = state.AppState.role === requiredRole ? "block" : "none";
+  });
 }

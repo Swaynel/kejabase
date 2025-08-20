@@ -35,7 +35,7 @@ const housesCollection = db.collection('houses');
 const bnbsCollection = db.collection('bnbs');
 const bookingsCollection = db.collection('bookings');
 const feedbackCollection = db.collection('feedback');
-const reportsCollection = db.collection('reports');
+const reportsCollection = db.collection('repAorts');
 
 // Export Firebase services to global scope
 window.firebaseServices = {

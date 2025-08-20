@@ -9,6 +9,7 @@ const AppState = {
     location: "",
     type: "",
     priceRange: null,
+    amenities: [], // ✅ Added amenities filter
   },
   favorites: [],
   error: null,
@@ -57,13 +58,13 @@ function updateState(newState) {
 // Filter Helpers
 // ==============================
 function resetFilters() {
-  AppState.filters = { location: "", type: "", priceRange: null };
+  AppState.filters = { location: "", type: "", priceRange: null, amenities: [] };
   saveStateToStorage();
 }
 
 function applyFilters() {
   return AppState.listings.filter((listing) => {
-    const { location, type, priceRange } = AppState.filters;
+    const { location, type, priceRange, amenities } = AppState.filters;
 
     const matchesLocation = location
       ? listing.location?.toLowerCase().includes(location.toLowerCase())
@@ -72,8 +73,12 @@ function applyFilters() {
     const matchesPrice = priceRange
       ? listing.price >= priceRange[0] && listing.price <= priceRange[1]
       : true;
+    const matchesAmenities =
+      amenities?.length > 0
+        ? amenities.every((a) => listing.tags?.includes(a))
+        : true;
 
-    return matchesLocation && matchesType && matchesPrice;
+    return matchesLocation && matchesType && matchesPrice && matchesAmenities;
   });
 }
 
@@ -95,22 +100,23 @@ function toggleFavorite(listingId) {
 // ==============================
 async function initializeState() {
   try {
-    // Fetch houses + bnbs
     const [housesSnap, bnbsSnap] = await Promise.all([
-      firebaseServices.firestore.collection("houses").get(),
-      firebaseServices.firestore.collection("bnbs").get(),
+      firebaseServices.collections.houses.get(),
+      firebaseServices.collections.bnbs.get(),
     ]);
 
     const houses = housesSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       type: "house",
+      tags: doc.data().tags || [],
     }));
 
     const bnbs = bnbsSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
       type: "bnb",
+      tags: doc.data().tags || [],
     }));
 
     updateState({ listings: [...houses, ...bnbs] });
@@ -125,8 +131,7 @@ async function initializeState() {
 // ==============================
 firebaseServices.auth.onAuthStateChanged(async (user) => {
   if (user) {
-    // Always fetch fresh user data from Firestore
-    const userDoc = await firebaseServices.firestore.collection("users").doc(user.uid).get();
+    const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
     const userData = userDoc.data();
 
     updateState({
@@ -141,8 +146,8 @@ firebaseServices.auth.onAuthStateChanged(async (user) => {
 // ==============================
 // Initialize on Page Load
 // ==============================
-loadStateFromStorage();  // restore state before Firebase re-checks auth
-initializeState();       // load listings
+loadStateFromStorage(); // restore state before Firebase re-checks auth
+initializeState(); // load listings
 
 // Expose state globally
 window.state = {

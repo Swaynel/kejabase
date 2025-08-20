@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hunter Registration | Kejabase</title>
+  <title>Register | Kejabase</title>
   <link href="./dist/output.css" rel="stylesheet">
   <link rel="manifest" href="/manifest.json">
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
+
   <header class="bg-white shadow-sm">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex justify-between h-16">
@@ -15,7 +16,7 @@
           <a href="/" class="text-xl font-bold text-indigo-600">Kejabase</a>
         </div>
         <div class="flex items-center">
-          <a href="/login-hunter.html" class="text-gray-700 hover:text-indigo-600 mr-4">Login</a>
+          <a href="/login.html" class="text-gray-700 hover:text-indigo-600 mr-4">Login</a>
           <a href="/browse.html" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Browse Homes</a>
         </div>
       </div>
@@ -24,68 +25,81 @@
 
   <main class="flex-grow flex items-center justify-center py-8">
     <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-      <h1 class="text-2xl font-bold text-center mb-6">Hunter Registration</h1>
+      <h1 class="text-2xl font-bold text-center mb-6">Register Account</h1>
       <form id="register-form" class="space-y-4">
+
+        <div>
+          <label for="role" class="block text-sm font-medium text-gray-700">Account Type</label>
+          <select id="role" name="role" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="">Select role</option>
+            <option value="hunter">Hunter</option>
+            <option value="provider">Provider</option>
+            <option value="bnb">BnB Host</option>
+          </select>
+        </div>
+
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
-          <input type="text" id="name" name="name" required 
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="text" id="name" name="name" required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-          <input type="email" id="email" name="email" required 
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="email" id="email" name="email" required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-          <input type="password" id="password" name="password" required 
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="password" id="password" name="password" required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div>
           <label for="confirm-password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-          <input type="password" id="confirm-password" name="confirm-password" required 
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="password" id="confirm-password" name="confirm-password" required
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div>
           <label for="phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-          <input type="tel" id="phone" name="phone" required 
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="tel" id="phone" name="phone"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div>
           <label for="preferred-location" class="block text-sm font-medium text-gray-700">Preferred Location</label>
-          <input type="text" id="preferred-location" name="preferred-location" 
-                 placeholder="City or neighborhood"
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
-                        focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="text" id="preferred-location" name="preferred-location" placeholder="City or neighborhood"
+                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
+
         <div class="flex items-center">
-          <input id="terms" name="terms" type="checkbox" required 
+          <input id="terms" name="terms" type="checkbox" required
                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
           <label for="terms" class="ml-2 block text-sm text-gray-700">
             I agree to the 
             <a href="#" class="text-indigo-600 hover:text-indigo-500">terms and conditions</a>
           </label>
         </div>
+
         <div>
-          <button type="submit" 
-                  class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm 
-                         text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 
-                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm 
+                                      text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 
+                                      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             Register
           </button>
         </div>
+
       </form>
+
       <div class="mt-4 text-center">
         <p class="text-sm text-gray-600">
           Already have an account? 
-          <a href="/login-hunter.html" class="font-medium text-indigo-600 hover:text-indigo-500">Login here</a>
+          <a href="/login.html" class="font-medium text-indigo-600 hover:text-indigo-500">Login here</a>
         </p>
       </div>
+
       <div id="error-message" class="mt-4 hidden text-sm text-red-600"></div>
     </div>
   </main>
@@ -97,46 +111,63 @@
   </footer>
 
   <script src="/js/firebase.js"></script>
-  <script src="/js/auth.js"></script>
+  <script src="/js/authService.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const registerForm = document.getElementById('register-form');
-      
+
       registerForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
+        const role = document.getElementById('role').value;
         const name = document.getElementById('name').value;
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm-password').value;
         const phone = document.getElementById('phone').value;
         const preferredLocation = document.getElementById('preferred-location').value;
-        
+
         if (password !== confirmPassword) {
-          document.getElementById('error-message').textContent = "Passwords don't match";
-          document.getElementById('error-message').classList.remove('hidden');
+          const error = document.getElementById('error-message');
+          error.textContent = "Passwords don't match";
+          error.classList.remove('hidden');
           return;
         }
-        
-        auth.registerWithEmailAndPassword(email, password, {
+
+        authService.registerWithEmailAndPassword(email, password, {
           name,
           email,
           phone,
           preferredLocation: preferredLocation || '',
-          role: 'hunter',
+          role,
           favorites: [],
           searchHistory: [],
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         })
         .then(() => {
-          window.location.href = '/dashboard-hunter.html';
+          // Redirect based on role
+          switch(role) {
+            case 'hunter':
+              window.location.href = '/dashboard-hunter.html';
+              break;
+            case 'provider':
+              window.location.href = '/dashboard-provider.html';
+              break;
+            case 'bnb':
+              window.location.href = '/dashboard-bnb.html';
+              break;
+            default:
+              window.location.href = '/';
+          }
         })
         .catch(error => {
-          document.getElementById('error-message').textContent = error.message;
-          document.getElementById('error-message').classList.remove('hidden');
+          const err = document.getElementById('error-message');
+          err.textContent = error.message;
+          err.classList.remove('hidden');
         });
       });
     });
   </script>
+
 </body>
 </html>

@@ -5,17 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kejabase - From street cribs to suites, find your suit</title>
   <meta name="description" content="Find your perfect home or BnB with Kejabase">
-  
+
+  <!-- Tailwind CSS -->
   <link href="./dist/output.css" rel="stylesheet">
+
   <!-- PWA manifest -->
   <link rel="manifest" href="manifest.json">
-  
-  <!-- Favicon -->
-  <link rel="icon" href="images/favicon.ico">
-  
+  <meta name="theme-color" content="#4F46E5">
+
+  <!-- Favicon and PWA icons -->
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="192x192" href="images/icon-192.png">
 
 </head>
 <body class="bg-gray-50">
+
+  <!-- Header / Navbar -->
   <header class="bg-white shadow-sm">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between h-16">
@@ -39,6 +44,7 @@
     </nav>
   </header>
 
+  <!-- Hero Section -->
   <main>
     <section class="py-20 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -51,6 +57,7 @@
       </div>
     </section>
 
+    <!-- How It Works -->
     <section class="py-16 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 class="text-3xl font-bold text-center mb-12">How Kejabase Works</h2>
@@ -87,6 +94,7 @@
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="bg-gray-800 text-white py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -130,7 +138,33 @@
   </footer>
 
   <!-- Scripts -->
+
+  <!-- Firebase SDKs (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
+  <!-- Local Firebase initialization -->
   <script src="js/firebase.js"></script>
+
+  <!-- App state management -->
+  <script src="js/state.js"></script>
+
+  <!-- Main app functionality -->
   <script src="js/app.js"></script>
+
+  <!-- Service Worker for PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(reg => console.log('ServiceWorker registered:', reg))
+          .catch(err => console.error('ServiceWorker registration failed:', err));
+      });
+    }
+  </script>
+
 </body>
 </html>

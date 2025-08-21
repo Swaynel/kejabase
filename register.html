@@ -27,10 +27,10 @@
     <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
       <h1 class="text-2xl font-bold text-center mb-6">Register Account</h1>
       <form id="register-form" class="space-y-4">
-
         <div>
           <label for="role" class="block text-sm font-medium text-gray-700">Account Type</label>
-          <select id="role" name="role" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+          <select id="role" name="role" required
+                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
             <option value="">Select role</option>
             <option value="hunter">Hunter</option>
             <option value="provider">Provider</option>
@@ -68,12 +68,6 @@
                  class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
         </div>
 
-        <div>
-          <label for="preferred-location" class="block text-sm font-medium text-gray-700">Preferred Location</label>
-          <input type="text" id="preferred-location" name="preferred-location" placeholder="City or neighborhood"
-                 class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-        </div>
-
         <div class="flex items-center">
           <input id="terms" name="terms" type="checkbox" required
                  class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
@@ -90,7 +84,6 @@
             Register
           </button>
         </div>
-
       </form>
 
       <div class="mt-4 text-center">
@@ -106,62 +99,30 @@
 
   <footer class="bg-gray-800 text-white py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-      <p>&copy; 2023 Kejabase. All rights reserved.</p>
+      <p>&copy; 2025 Kejabase. All rights reserved.</p>
     </div>
   </footer>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Local scripts -->
   <script src="/js/firebase.js"></script>
+  <script src="/js/state.js"></script>
   <script src="/js/authService.js"></script>
+
+  <!-- Service Worker -->
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-
-    // Auto-redirect if already logged in
-    authService.checkAuthAndRedirect().then(({ isAuthenticated, dashboard }) => {
-      if (isAuthenticated && dashboard) window.location.href = dashboard;
-    });
-
-    const registerForm = document.getElementById('register-form');
-    registerForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const role = document.getElementById('role').value;
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirm-password').value;
-      const phone = document.getElementById('phone').value;
-      const preferredLocation = document.getElementById('preferred-location').value;
-      const errorDiv = document.getElementById('error-message');
-
-      errorDiv.classList.add('hidden');
-
-      if (password !== confirmPassword) {
-        errorDiv.textContent = "Passwords don't match";
-        errorDiv.classList.remove('hidden');
-        return;
-      }
-
-      authService.createUserWithEmailAndPassword(email, password, {
-        name, email, phone, preferredLocation, role,
-        favorites: [], searchHistory: [],
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(({ role }) => {
-        let dashboard;
-        switch(role) {
-          case 'hunter': dashboard = '/dashboard-hunter.html'; break;
-          case 'provider': dashboard = '/dashboard-provider.html'; break;
-          case 'bnb': dashboard = '/dashboard-bnb.html'; break;
-          default: dashboard = '/'; break;
-        }
-        window.location.href = dashboard;
-      })
-      .catch(error => {
-        errorDiv.textContent = error.message;
-        errorDiv.classList.remove('hidden');
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .register('/service-worker.js')
+          .then((reg) => console.log('ServiceWorker registered:', reg))
+          .catch((err) => console.error('ServiceWorker registration failed:', err));
       });
-    });
-  });
+    }
   </script>
 
 </body>

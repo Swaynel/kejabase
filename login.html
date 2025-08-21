@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kejabase Login</title>
+  <title>Login | Kejabase</title>
   <meta name="description" content="Kejabase login portal">
 
   <!-- Tailwind CSS -->
   <link href="./dist/output.css" rel="stylesheet">
 
   <!-- PWA manifest -->
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4F46E5">
   <link rel="icon" href="images/favicon.ico" type="image/x-icon">
   <link rel="apple-touch-icon" sizes="192x192" href="images/icon-192.png">
@@ -98,81 +98,22 @@
     </div>
   </footer>
 
-  <!-- Firebase SDK (compat) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-  <!-- Local Firebase initialization -->
+  <!-- Local Firebase init, state, and auth scripts -->
   <script src="js/firebase.js"></script>
-
-  <!-- Authentication service -->
+  <script src="js/state.js"></script>
   <script src="js/authService.js"></script>
 
-  <!-- DOM Handling -->
+  <!-- Mobile menu + service worker -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Auto-redirect if already logged in
-      authService.checkAuthAndRedirect().then(({ isAuthenticated, dashboard }) => {
-        if (isAuthenticated && dashboard) window.location.href = dashboard;
-      });
-
-      const loginForm = document.getElementById('login-form');
-      const errorDiv = document.getElementById('error-message');
-      const successDiv = document.getElementById('success-message');
-      const forgotBtn = document.getElementById('forgot-password');
-
-      loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        errorDiv.classList.add('hidden');
-        successDiv.classList.add('hidden');
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('remember-me')?.checked || false;
-
-        const submitBtn = loginForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Signing in...';
-        submitBtn.disabled = true;
-
-        authService.signInWithEmailAndPassword(email, password, rememberMe)
-          .then(({ dashboard }) => window.location.href = dashboard)
-          .catch(error => {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('hidden');
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-          });
-      });
-
-      forgotBtn?.addEventListener('click', function(e) {
-        e.preventDefault();
-        errorDiv.classList.add('hidden');
-        successDiv.classList.add('hidden');
-
-        const email = document.getElementById('email').value;
-        if (!email) {
-          errorDiv.textContent = "Please enter your email first.";
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
-        authService.sendPasswordResetEmail(email)
-          .then(() => {
-            successDiv.textContent = "Password reset email sent! Check your inbox.";
-            successDiv.classList.remove('hidden');
-          })
-          .catch(error => {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('hidden');
-          });
-      });
-
+    document.addEventListener('DOMContentLoaded', () => {
       // Mobile menu toggle
-      const mobileButton = document.getElementById('mobile-menu-button');
-      mobileButton?.addEventListener('click', function() {
+      document.getElementById('mobile-menu-button')?.addEventListener('click', () => {
         document.getElementById('mobile-menu').classList.toggle('hidden');
       });
 

@@ -16,13 +16,47 @@ document.addEventListener("DOMContentLoaded", () => {
   // Mobile menu toggle
   document.getElementById("mobile-menu-button")?.addEventListener("click", toggleMobileMenu);
 
-  // Page-specific initialization
-  const path = window.location.pathname;
-  if (path.includes("browse.html")) initBrowsePage();
-  else if (path.includes("bnb.html")) initBnbPage();
-  else if (path.includes("house-detail.html")) initHouseDetailPage();
-  else if (path.includes("dashboard-")) initDashboardPage();
+  // Wait for Firebase to be ready before initializing pages
+  waitForFirebase().then(() => {
+    // Page-specific initialization
+    const path = window.location.pathname;
+    if (path.includes("browse.html")) initBrowsePage();
+    else if (path.includes("bnb.html")) initBnbPage();
+    else if (path.includes("house-detail.html")) initHouseDetailPage();
+    else if (path.includes("dashboard-")) initDashboardPage();
+  });
 });
+
+// ==============================
+// Wait for Firebase to be ready
+// ==============================
+function waitForFirebase() {
+  return new Promise((resolve) => {
+    if (window.firebaseServices && window.firebaseServices.ready) {
+      resolve();
+    } else {
+      // Listen for the firebaseReady event
+      window.addEventListener('firebaseReady', () => {
+        resolve();
+      }, { once: true });
+      
+      // Fallback polling method
+      const checkFirebase = setInterval(() => {
+        if (window.firebaseServices && window.firebaseServices.ready) {
+          clearInterval(checkFirebase);
+          resolve();
+        }
+      }, 100);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkFirebase);
+        console.error("Firebase initialization timeout");
+        resolve();
+      }, 10000);
+    }
+  });
+}
 
 // ==============================
 // Mobile Menu
@@ -35,39 +69,41 @@ function toggleMobileMenu() {
 // ==============================
 // Auth State Listener
 // ==============================
-firebaseServices.auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    try {
-      const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        window.state.updateState({
-          currentUser: { uid: user.uid, ...userData },
-          role: userData.role || "guest",
-        });
+waitForFirebase().then(() => {
+  window.firebaseServices.auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      try {
+        const userDoc = await window.firebaseServices.collections.users.doc(user.uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          window.state.updateState({
+            currentUser: { uid: user.uid, ...userData },
+            role: userData.role || "guest",
+          });
 
-        // Initialize listings safely
-        await window.state.initializeState();
-        updateUIFromState();
-      } else {
-        console.warn("User document not found in Firestore.");
-        window.state.updateState({ currentUser: null, role: null });
+          // Initialize listings safely
+          await window.state.initializeState();
+          updateUIFromState();
+        } else {
+          console.warn("User document not found in Firestore.");
+          window.state.updateState({ currentUser: null, role: null });
+          updateUIFromState();
+        }
+      } catch (err) {
+        console.error("Error loading user data:", err);
+        window.state.AppState.error = err.message || "Error loading user";
         updateUIFromState();
       }
-    } catch (err) {
-      console.error("Error loading user data:", err);
-      window.state.AppState.error = err.message || "Error loading user";
+    } else {
+      // Guest user
+      window.state.updateState({ currentUser: null, role: null });
+
+      // Load public listings if Firebase is ready
+      await window.state.initializeState();
+
       updateUIFromState();
     }
-  } else {
-    // Guest user
-    window.state.updateState({ currentUser: null, role: null });
-
-    // Optional: Load public listings if Firestore rules allow
-    // await window.state.initializeState();
-
-    updateUIFromState();
-  }
+  });
 });
 
 // ==============================
@@ -134,10 +170,10 @@ async function initHouseDetailPage() {
 
   let listing = window.state.AppState.listings.find((l) => l.id === listingId);
 
-  if (!listing && firebaseServices.auth.currentUser) {
+  if (!listing && window.firebaseServices.auth.currentUser) {
     try {
-      const houseDoc = await firebaseServices.collections.houses.doc(listingId).get();
-      const bnbDoc = await firebaseServices.collections.bnbs.doc(listingId).get();
+      const houseDoc = await window.firebaseServices.collections.houses.doc(listingId).get();
+      const bnbDoc = await window.firebaseServices.collections.bnbs.doc(listingId).get();
 
       if (houseDoc.exists) listing = { id: houseDoc.id, ...houseDoc.data(), type: "house" };
       else if (bnbDoc.exists) listing = { id: bnbDoc.id, ...bnbDoc.data(), type: "bnb" };
@@ -188,7 +224,7 @@ function handleBooking(listingId, listingType) {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
 
-  firebaseServices.collections.bookings
+  window.firebaseServices.collections.bookings
     .add(bookingData)
     .then((docRef) => generateBookingReceipt({ id: docRef.id, ...bookingData }))
     .catch((err) => {

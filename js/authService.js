@@ -4,26 +4,19 @@
 const authService = {
   // Wait for Firebase to be ready
   waitForFirebase() {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (window.firebaseServices && window.firebaseServices.ready) {
         resolve();
       } else {
-        // Listen for the firebaseReady event
-        window.addEventListener('firebaseReady', () => {
-          resolve();
-        }, { once: true });
-
-        // Fallback polling method
-        const checkFirebase = setInterval(() => {
+        window.addEventListener('firebaseReady', () => resolve(), { once: true });
+        const check = setInterval(() => {
           if (window.firebaseServices && window.firebaseServices.ready) {
-            clearInterval(checkFirebase);
+            clearInterval(check);
             resolve();
           }
         }, 100);
-
-        // Timeout after 5 seconds
         setTimeout(() => {
-          clearInterval(checkFirebase);
+          clearInterval(check);
           console.error("Firebase initialization timeout in authService");
           resolve();
         }, 5000);
@@ -31,10 +24,9 @@ const authService = {
     });
   },
 
-  // Sign in with email/password & Firestore role check
+  // Sign in with email/password & role-based redirect
   signInWithEmailAndPassword: async function(email, password, rememberMe = false) {
     await this.waitForFirebase();
-
     const persistence = rememberMe
       ? window.firebaseServices.auth.Auth.Persistence.LOCAL
       : window.firebaseServices.auth.Auth.Persistence.SESSION;
@@ -50,106 +42,17 @@ const authService = {
               throw new Error("User data not found in Firestore.");
             }
             const role = doc.data().role;
-
-            // Redirect based on Firestore role
             let dashboard;
-            switch(role) {
+            switch (role) {
               case 'admin': dashboard = '/dashboard-admin.html'; break;
               case 'bnb': dashboard = '/dashboard-bnb.html'; break;
               case 'provider': dashboard = '/dashboard-provider.html'; break;
               case 'hunter': dashboard = '/dashboard-hunter.html'; break;
               default: dashboard = '/'; break;
             }
-
             return { user: userCredential.user, role, dashboard };
           });
       });
-  },
-
-  // Check if user is already authenticated and redirect appropriately
-  checkAuthAndRedirect: async function() {
-    await this.waitForFirebase();
-
-    return new Promise((resolve) => {
-      window.firebaseServices.auth.onAuthStateChanged(async (user) => {
-        if (user) {
-          try {
-            const userDoc = await window.firebaseServices.collections.users.doc(user.uid).get();
-            if (!userDoc.exists) {
-              resolve({ isAuthenticated: false });
-              return;
-            }
-
-            const role = userDoc.data()?.role;
-            let dashboard;
-            switch(role) {
-              case 'admin': dashboard = '/dashboard-admin.html'; break;
-              case 'bnb': dashboard = '/dashboard-bnb.html'; break;
-              case 'provider': dashboard = '/dashboard-provider.html'; break;
-              case 'hunter': dashboard = '/dashboard-hunter.html'; break;
-              default: dashboard = '/'; break;
-            }
-            resolve({ isAuthenticated: true, dashboard, role, user });
-          } catch (error) {
-            console.error('Error checking auth state:', error);
-            resolve({ isAuthenticated: false });
-          }
-        } else {
-          resolve({ isAuthenticated: false });
-        }
-      });
-    });
-  },
-
-  // Get current user role
-  getCurrentUserRole: async function() {
-    await this.waitForFirebase();
-
-    return new Promise((resolve) => {
-      const user = window.firebaseServices.auth.currentUser;
-      if (user) {
-        window.firebaseServices.collections.users.doc(user.uid).get()
-          .then(doc => {
-            if (doc.exists) {
-              resolve(doc.data().role);
-            } else {
-              resolve(null);
-            }
-          })
-          .catch(() => resolve(null));
-      } else {
-        resolve(null);
-      }
-    });
-  },
-
-  // Check if user is authenticated (simple boolean check)
-  isAuthenticated: async function() {
-    await this.waitForFirebase();
-    return window.firebaseServices.auth.currentUser !== null;
-  },
-
-  // Get current user data
-  getCurrentUser: async function() {
-    await this.waitForFirebase();
-    return window.firebaseServices.auth.currentUser;
-  },
-
-  // Password reset
-  sendPasswordResetEmail: async function(email) {
-    await this.waitForFirebase();
-    return window.firebaseServices.auth.sendPasswordResetEmail(email);
-  },
-
-  // Sign out
-  signOut: async function() {
-    await this.waitForFirebase();
-    return window.firebaseServices.auth.signOut().then(() => {
-      if (window.state && window.state.updateState) {
-        window.state.updateState({ currentUser: null, role: null });
-      }
-      window.location.href = '/';
-    });
   },
 
   // Register new user
@@ -159,177 +62,220 @@ const authService = {
       .then(userCredential => {
         const uid = userCredential.user.uid;
         return window.firebaseServices.collections.users.doc(uid).set({
-          email: email,
+          email,
           createdAt: window.firebaseServices.serverTimestamp(),
           ...userData
-        }).then(() => {
-          return { user: userCredential.user, role: userData.role };
-        });
+        }).then(() => ({ user: userCredential.user, role: userData.role }));
       });
-  }
-};
+  },
 
-// ==============================
-// Auto-redirect for authenticated users
-// ==============================
-async function handleAuthRedirect() {
-  if (window.location.pathname.includes('login.html')) {
-    try {
-      const { isAuthenticated, dashboard } = await authService.checkAuthAndRedirect();
-      if (isAuthenticated) {
-        window.location.href = dashboard;
-      }
-    } catch (error) {
-      console.error('Error in auth redirect:', error);
-    }
-  }
-}
-
-// ==============================
-// DOM Event Handlers
-// ==============================
-document.addEventListener('DOMContentLoaded', function() {
-  authService.waitForFirebase().then(() => {
-    const loginForm = document.getElementById('login-form');
-    const errorDiv = document.getElementById('error-message');
-    const successDiv = document.getElementById('success-message');
-    const forgotBtn = document.getElementById('forgot-password');
-
-    handleAuthRedirect();
-
-    if (loginForm) {
-      loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        errorDiv?.classList.add('hidden');
-        successDiv?.classList.add('hidden');
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const rememberMe = document.getElementById('remember-me')?.checked || false;
-
-        const submitBtn = loginForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Signing in...';
-        submitBtn.disabled = true;
-
-        authService.signInWithEmailAndPassword(email, password, rememberMe)
-          .then(({ dashboard }) => window.location.href = dashboard)
-          .catch(error => {
-            if (errorDiv) {
-              errorDiv.textContent = error.message;
-              errorDiv.classList.remove('hidden');
-            }
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-          });
-      });
-    }
-
-    if (forgotBtn) {
-      forgotBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        if (!email) {
-          errorDiv.textContent = "Please enter your email first.";
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
-        authService.sendPasswordResetEmail(email)
-          .then(() => {
-            successDiv.textContent = "Password reset email sent! Check your inbox.";
-            successDiv.classList.remove('hidden');
-            errorDiv.classList.add('hidden');
-          })
-          .catch(error => {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('hidden');
-          });
-      });
-    }
-
-    const registerForm = document.getElementById('register-form');
-    if (registerForm) {
-      registerForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password')?.value;
-        const role = document.getElementById('role')?.value || 'hunter';
-        const name = document.getElementById('name')?.value || '';
-        const phone = document.getElementById('phone')?.value || '';
-
-        if (confirmPassword && password !== confirmPassword) {
-          errorDiv.textContent = "Passwords do not match.";
-          errorDiv.classList.remove('hidden');
-          return;
-        }
-
-        const submitBtn = registerForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Creating account...';
-        submitBtn.disabled = true;
-
-        const userData = { role, name, phone };
-
-        authService.createUserWithEmailAndPassword(email, password, userData)
-          .then(({ role }) => {
+  // Check auth & redirect
+  checkAuthAndRedirect: async function() {
+    await this.waitForFirebase();
+    return new Promise(resolve => {
+      window.firebaseServices.auth.onAuthStateChanged(async user => {
+        if (user) {
+          try {
+            const doc = await window.firebaseServices.collections.users.doc(user.uid).get();
+            if (!doc.exists) return resolve({ isAuthenticated: false });
+            const role = doc.data()?.role;
             let dashboard;
-            switch(role) {
+            switch (role) {
               case 'admin': dashboard = '/dashboard-admin.html'; break;
               case 'bnb': dashboard = '/dashboard-bnb.html'; break;
               case 'provider': dashboard = '/dashboard-provider.html'; break;
               case 'hunter': dashboard = '/dashboard-hunter.html'; break;
               default: dashboard = '/'; break;
             }
-            window.location.href = dashboard;
-          })
-          .catch(error => {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.remove('hidden');
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-          });
-      });
-    }
-
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('sign-out-btn') || e.target.id === 'sign-out') {
-        e.preventDefault();
-        authService.signOut();
-      }
-    });
-
-    // ==============================
-    // Global Auth State Monitor
-    // ==============================
-    window.firebaseServices.auth.onAuthStateChanged(function(user) {
-      const loginLink = document.querySelector('a[href="login.html"]');
-      if (user && loginLink) {
-        authService.getCurrentUserRole().then(role => {
-          if (role) {
-            loginLink.textContent = 'Dashboard';
-            let dashboard;
-            switch(role) {
-              case 'admin': dashboard = 'dashboard-admin.html'; break;
-              case 'bnb': dashboard = 'dashboard-bnb.html'; break;
-              case 'provider': dashboard = 'dashboard-provider.html'; break;
-              case 'hunter': dashboard = 'dashboard-hunter.html'; break;
-              default: dashboard = 'index.html'; break;
-            }
-            loginLink.href = dashboard;
+            resolve({ isAuthenticated: true, dashboard, role, user });
+          } catch {
+            resolve({ isAuthenticated: false });
           }
-        });
-      } else if (!user && loginLink) {
-        loginLink.textContent = 'Login';
-        loginLink.href = 'login.html';
-      }
+        } else resolve({ isAuthenticated: false });
+      });
     });
+  },
+
+  getCurrentUserRole: async function() {
+    await this.waitForFirebase();
+    const user = window.firebaseServices.auth.currentUser;
+    if (!user) return null;
+    try {
+      const doc = await window.firebaseServices.collections.users.doc(user.uid).get();
+      return doc.exists ? doc.data().role : null;
+    } catch {
+      return null;
+    }
+  },
+
+  isAuthenticated: async function() {
+    await this.waitForFirebase();
+    return window.firebaseServices.auth.currentUser !== null;
+  },
+
+  getCurrentUser: async function() {
+    await this.waitForFirebase();
+    return window.firebaseServices.auth.currentUser;
+  },
+
+  sendPasswordResetEmail: async function(email) {
+    await this.waitForFirebase();
+    return window.firebaseServices.auth.sendPasswordResetEmail(email);
+  },
+
+  signOut: async function() {
+    await this.waitForFirebase();
+    return window.firebaseServices.auth.signOut().then(() => {
+      if (window.state?.updateState) window.state.updateState({ currentUser: null, role: null });
+      window.location.href = '/';
+    });
+  }
+};
+
+// Auto-redirect function
+async function handleAuthRedirect() {
+  if (window.location.pathname.includes('login.html')) {
+    const { isAuthenticated, dashboard } = await authService.checkAuthAndRedirect();
+    if (isAuthenticated) window.location.href = dashboard;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await authService.waitForFirebase();
+
+  // Forms
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const errorDiv = document.getElementById('error-message');
+  const successDiv = document.getElementById('success-message');
+  const forgotBtn = document.getElementById('forgot-password');
+
+  handleAuthRedirect();
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', e => {
+      e.preventDefault();
+      errorDiv?.classList.add('hidden');
+      successDiv?.classList.add('hidden');
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const rememberMe = document.getElementById('remember-me')?.checked || false;
+
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Signing in...';
+      submitBtn.disabled = true;
+
+      authService.signInWithEmailAndPassword(email, password, rememberMe)
+        .then(({ dashboard }) => window.location.href = dashboard)
+        .catch(err => {
+          errorDiv.textContent = err?.message || "An error occurred.";
+          errorDiv.classList.remove('hidden');
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+        });
+    });
+  }
+
+  if (forgotBtn) {
+    forgotBtn.addEventListener('click', e => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      if (!email) {
+        errorDiv.textContent = "Please enter your email first.";
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+      authService.sendPasswordResetEmail(email)
+        .then(() => {
+          successDiv.textContent = "Password reset email sent!";
+          successDiv.classList.remove('hidden');
+          errorDiv.classList.add('hidden');
+        })
+        .catch(() => {
+          errorDiv.textContent = "Failed to send password reset email.";
+          errorDiv.classList.remove('hidden');
+        });
+    });
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password')?.value;
+      const role = document.getElementById('role')?.value || 'hunter';
+      const name = document.getElementById('name')?.value || '';
+      const phone = document.getElementById('phone')?.value || '';
+
+      if (confirmPassword && password !== confirmPassword) {
+        errorDiv.textContent = "Passwords do not match.";
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      const submitBtn = registerForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Creating account...';
+      submitBtn.disabled = true;
+
+      const userData = { role, name, phone };
+
+      authService.createUserWithEmailAndPassword(email, password, userData)
+        .then(({ role }) => {
+          let dashboard;
+          switch (role) {
+            case 'admin': dashboard = '/dashboard-admin.html'; break;
+            case 'bnb': dashboard = '/dashboard-bnb.html'; break;
+            case 'provider': dashboard = '/dashboard-provider.html'; break;
+            case 'hunter': dashboard = '/dashboard-hunter.html'; break;
+            default: dashboard = '/'; break;
+          }
+          window.location.href = dashboard;
+        })
+        .catch(() => {
+          errorDiv.textContent = "Failed to create account.";
+          errorDiv.classList.remove('hidden');
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
+        });
+    });
+  }
+
+  // Global Auth State Monitor for nav updates
+  window.firebaseServices.auth.onAuthStateChanged(user => {
+    const loginLink = document.querySelector('a[href="login.html"]');
+    if (user && loginLink) {
+      authService.getCurrentUserRole().then(role => {
+        if (!role) return;
+        loginLink.textContent = 'Dashboard';
+        let dashboard;
+        switch (role) {
+          case 'admin': dashboard = 'dashboard-admin.html'; break;
+          case 'bnb': dashboard = 'dashboard-bnb.html'; break;
+          case 'provider': dashboard = 'dashboard-provider.html'; break;
+          case 'hunter': dashboard = 'dashboard-hunter.html'; break;
+          default: dashboard = 'index.html'; break;
+        }
+        loginLink.href = dashboard;
+      });
+    } else if (!user && loginLink) {
+      loginLink.textContent = 'Login';
+      loginLink.href = 'login.html';
+    }
+  });
+
+  // Sign out buttons
+  document.addEventListener('click', e => {
+    if (e.target.classList.contains('sign-out-btn') || e.target.id === 'sign-out') {
+      e.preventDefault();
+      authService.signOut();
+    }
   });
 });
 
-// ==============================
 // Expose globally
-// ==============================
 window.authService = authService;

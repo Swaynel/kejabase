@@ -1,11 +1,15 @@
-// firebase.js
+/* global firebase */
+
+// ==============================
+// firebase.js – Firebase initialization and services
+// ==============================
 
 // Make sure SDK scripts are loaded before this file
 if (!window.firebase) {
   console.error("Firebase SDK not loaded!");
 }
 
-// Firebase config
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDsE-FHOqm9LRmC4ug82YeJ6Nyw8C1zWrc",
   authDomain: "kejabase.firebaseapp.com",
@@ -16,10 +20,10 @@ const firebaseConfig = {
   measurementId: "G-JTFBB4SG03"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
+// Initialize Firebase app
+firebase.initializeApp(firebaseConfig); // ← used now, removes ESLint warning
 
-// Services
+// Firebase services
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
@@ -33,7 +37,7 @@ db.enablePersistence().catch(err => {
   }
 });
 
-// Collections
+// Firestore collections
 const usersCollection = db.collection('users');
 const housesCollection = db.collection('houses');
 const bnbsCollection = db.collection('bnbs');
@@ -42,7 +46,7 @@ const feedbackCollection = db.collection('feedback');
 const reportsCollection = db.collection('reports');
 const favoritesCollection = db.collection('favorites');
 
-// Create the firebaseServices object
+// Build global firebaseServices object
 window.firebaseServices = {
   auth,
   db,
@@ -60,8 +64,8 @@ window.firebaseServices = {
   arrayUnion: firebase.firestore.FieldValue.arrayUnion,
   arrayRemove: firebase.firestore.FieldValue.arrayRemove,
   increment: firebase.firestore.FieldValue.increment,
-  toTimestamp: (date) => firebase.firestore.Timestamp.fromDate(date),
-  handleError: (error) => {
+  toTimestamp: date => firebase.firestore.Timestamp.fromDate(date),
+  handleError: error => {
     console.error("Firebase Error:", error);
     const messages = {
       "permission-denied": "You don't have permission to perform this action",
@@ -72,12 +76,8 @@ window.firebaseServices = {
   }
 };
 
-// Add a ready state flag
+// Mark Firebase as ready and dispatch event
 window.firebaseServices.ready = true;
-
-// Dispatch a custom event when Firebase is ready
-window.dispatchEvent(new CustomEvent('firebaseReady', { 
-  detail: { firebaseServices: window.firebaseServices } 
-}));
+window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { firebaseServices: window.firebaseServices } }));
 
 console.log("🔥 Firebase v9 compat services loaded successfully");

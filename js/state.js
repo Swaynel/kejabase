@@ -1,6 +1,7 @@
 // ==============================
 // state.js – Global Application State
 // ==============================
+
 const AppState = {
   currentUser: null,
   role: null,
@@ -18,55 +19,61 @@ const AppState = {
 const state = {
   AppState,
 
-  updateState(updates) {
+  // Update state with new values
+  updateState(updates, callback) {
     Object.assign(AppState, updates);
-    if (typeof updateUIFromState === "function") updateUIFromState();
+    if (typeof callback === "function") callback();
   },
 
-  resetFilters() {
+  // Reset filters
+  resetFilters(callback) {
     AppState.filters = {
       location: "",
       priceRange: [0, Infinity],
       type: "",
       amenities: [],
     };
+    if (typeof callback === "function") callback();
   },
 
-  toggleFavorite(listingId) {
+  // Toggle favorite listings
+  toggleFavorite(listingId, callback) {
     const index = AppState.favorites.indexOf(listingId);
     if (index >= 0) AppState.favorites.splice(index, 1);
     else AppState.favorites.push(listingId);
+
+    if (typeof callback === "function") callback();
   },
 
+  // Apply current filters to listings
   applyFilters() {
-    return AppState.listings.filter((listing) => {
-      const { location, priceRange, type, amenities } = AppState.filters;
-      const priceOk =
-        listing.price >= (priceRange?.[0] || 0) &&
-        listing.price <= (priceRange?.[1] || Infinity);
+    const { listings, filters } = AppState;
+    return listings.filter(listing => {
+      const { location, priceRange, type, amenities } = filters;
+      const priceOk = listing.price >= (priceRange?.[0] || 0) && listing.price <= (priceRange?.[1] || Infinity);
       const locationOk = !location || listing.location.toLowerCase().includes(location.toLowerCase());
       const typeOk = !type || listing.type === type;
-      const amenitiesOk =
-        !amenities?.length || (listing.amenities && amenities.every((a) => listing.amenities.includes(a)));
+      const amenitiesOk = !amenities?.length || (listing.amenities && amenities.every(a => listing.amenities.includes(a)));
 
       return priceOk && locationOk && typeOk && amenitiesOk;
     });
   },
 
-  async initializeState() {
+  // Initialize state by fetching from Firebase
+  async initializeState(callback) {
     try {
-      // Check if firebaseServices is available
       if (!window.firebaseServices || !window.firebaseServices.collections) {
         console.warn("Firebase services not yet initialized, skipping state initialization");
+        if (typeof callback === "function") callback();
         return;
       }
+
+      const currentUser = window.firebaseServices.auth.currentUser;
+      AppState.currentUser = currentUser;
 
       let houses = [];
       let bnbs = [];
       let favorites = [];
-
-      const currentUser = window.firebaseServices.auth.currentUser;
-      AppState.currentUser = currentUser;
 
       // Fetch houses
       let housesQuery = window.firebaseServices.collections.houses;
@@ -74,7 +81,7 @@ const state = {
       const housesSnap = await housesQuery.get();
       houses = housesSnap.docs.map(doc => ({ id: doc.id, type: "house", ...doc.data() }));
 
-      // Fetch bnbs
+      // Fetch BnBs
       let bnbsQuery = window.firebaseServices.collections.bnbs;
       if (!currentUser) bnbsQuery = bnbsQuery.where("public", "==", true);
       const bnbsSnap = await bnbsQuery.get();
@@ -82,7 +89,7 @@ const state = {
 
       AppState.listings = [...houses, ...bnbs];
 
-      // Fetch user favorites if logged in
+      // Fetch favorites for logged-in user
       if (currentUser) {
         const favSnap = await window.firebaseServices.collections.favorites
           .where("userId", "==", currentUser.uid)
@@ -91,11 +98,13 @@ const state = {
       }
       AppState.favorites = favorites;
 
+      if (typeof callback === "function") callback();
     } catch (err) {
       console.error("Error initializing state:", err);
       AppState.error = err.message || "Error loading listings";
       AppState.listings = [];
       AppState.favorites = [];
+      if (typeof callback === "function") callback();
     }
   }
 };

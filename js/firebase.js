@@ -48,6 +48,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+console.log("Firebase app initialized:", app.name);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -124,8 +125,9 @@ const firebaseServices = {
 // Export the services for modular import
 export default firebaseServices;
 
-// Optional: fire an event for listeners in your app (still ESLint-safe)
+// Optional: fire an event for listeners in your app
 if (typeof window !== "undefined") {
+  console.log("Dispatching firebaseReady event with firebaseServices:", firebaseServices);
   window.dispatchEvent(new CustomEvent("firebaseReady", { detail: { firebaseServices } }));
 }
 

@@ -12,6 +12,7 @@ class UIManager {
 
   // Set the state manager
   setStateManager(stateManager) {
+    console.log("Setting stateManager in UIManager:", stateManager);
     // Unsubscribe from previous state manager
     if (this.unsubscribe) {
       this.unsubscribe();
@@ -345,6 +346,11 @@ class UIManager {
 
   // Update UI from state changes
   updateFromState() {
+    if (!this.stateManager) {
+      console.warn("StateManager not set, skipping UI update");
+      return this;
+    }
+
     this.updateNavigation();
     
     // Update listings if on listings page
@@ -365,7 +371,44 @@ class UIManager {
   }
 
   // Initialize UI
-  init() {
+  async init() {
+    // Wait for AuthService and StateManager to be ready
+    await new Promise((resolve) => {
+      if (window.authService?.isFirebaseReady() && window.state) {
+        console.log("AuthService and StateManager ready, initializing UIManager");
+        resolve();
+        return;
+      }
+
+      console.log("Waiting for firebaseReady event in ui.js");
+      const onFirebaseReady = () => {
+        if (window.authService?.isFirebaseReady() && window.state) {
+          console.log("firebaseReady event received and services ready in ui.js");
+          window.removeEventListener("firebaseReady", onFirebaseReady);
+          resolve();
+        }
+      };
+      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
+
+      // Polling fallback
+      const checkInterval = setInterval(() => {
+        if (window.authService?.isFirebaseReady() && window.state) {
+          console.log("AuthService and StateManager became ready via interval check");
+          clearInterval(checkInterval);
+          window.removeEventListener("firebaseReady", onFirebaseReady);
+          resolve();
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        window.removeEventListener("firebaseReady", onFirebaseReady);
+        console.warn("AuthService or StateManager initialization timeout in ui.js");
+        resolve(); // Proceed to avoid blocking
+      }, 10000);
+    });
+
     this.updateNavigation();
     this.initDatePickers();
     this.setupFilterHandlers();
@@ -394,26 +437,31 @@ export function createUIManager(stateManager = null) {
   return new UIManager(stateManager);
 }
 
-// Create default instance for backward compatibility
+// Create default instance
 const defaultUIManager = new UIManager();
 
 // Auto-initialize with window.state if available
-if (typeof window !== 'undefined' && window.state) {
-  defaultUIManager.setStateManager(window.state);
-}
-
-// Initialize on DOM ready
-if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    defaultUIManager.init();
-  });
-}
-
-// Expose on window for backward compatibility
 if (typeof window !== 'undefined') {
-  window.ui = defaultUIManager;
-  // Also expose the update function globally for compatibility
-  window.updateUIFromState = () => defaultUIManager.updateFromState();
+  console.log("Checking window.state for UIManager initialization");
+  const initializeUIManager = () => {
+    if (window.state && window.authService?.isFirebaseReady()) {
+      console.log("Setting stateManager in defaultUIManager");
+      defaultUIManager.setStateManager(window.state);
+      window.ui = defaultUIManager;
+      defaultUIManager.init();
+    }
+  };
+
+  if (window.state && window.authService?.isFirebaseReady()) {
+    console.log("StateManager and AuthService ready, initializing UIManager");
+    initializeUIManager();
+  } else {
+    console.log("Waiting for firebaseReady event to initialize UIManager");
+    window.addEventListener('firebaseReady', () => {
+      console.log("firebaseReady event received, initializing UIManager");
+      initializeUIManager();
+    }, { once: true });
+  }
 }
 
 // Export for module usage

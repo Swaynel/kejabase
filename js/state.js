@@ -24,6 +24,7 @@ class StateManager {
 
   // Initialize with Firebase services
   setFirebaseServices(firebaseServices) {
+    console.log("Setting firebaseServices in StateManager:", firebaseServices);
     this.firebaseServices = firebaseServices;
     return this;
   }
@@ -64,15 +65,44 @@ class StateManager {
   }
 
   // Toggle favorite listings
-  toggleFavorite(listingId, callback) {
-    const index = this.state.favorites.indexOf(listingId);
-    if (index >= 0) {
-      this.state.favorites.splice(index, 1);
-    } else {
-      this.state.favorites.push(listingId);
+  async toggleFavorite(listingId, callback) {
+    if (!window.authService?.isFirebaseReady() || !this.state.currentUser) {
+      console.warn("AuthService not ready or no user, cannot toggle favorite");
+      if (typeof callback === "function") callback();
+      return this;
     }
-    this.notify();
-    if (typeof callback === "function") callback();
+
+    try {
+      const index = this.state.favorites.indexOf(listingId);
+      const { collections, query, where, getDocs, addDoc, deleteDoc } = this.firebaseServices;
+      const favQuery = query(
+        collections.favorites,
+        where("userId", "==", this.state.currentUser.uid),
+        where("listingId", "==", listingId)
+      );
+
+      if (index >= 0) {
+        // Remove from favorites
+        this.state.favorites.splice(index, 1);
+        const snapshot = await getDocs(favQuery);
+        snapshot.forEach(doc => deleteDoc(doc.ref));
+      } else {
+        // Add to favorites
+        this.state.favorites.push(listingId);
+        await addDoc(collections.favorites, {
+          userId: this.state.currentUser.uid,
+          listingId,
+          createdAt: this.firebaseServices.serverTimestamp()
+        });
+      }
+
+      this.notify();
+      if (typeof callback === "function") callback();
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+      this.setError("Failed to update favorites");
+      if (typeof callback === "function") callback();
+    }
     return this;
   }
 
@@ -140,33 +170,30 @@ class StateManager {
 
   // Check if Firebase services are properly initialized
   isFirebaseReady() {
-    return this.firebaseServices && 
-           this.firebaseServices.collections && 
-           this.firebaseServices.firestore &&
-           this.firebaseServices.auth;
+    return window.authService?.isFirebaseReady() || false;
   }
 
   // Firebase integration methods
   async fetchCollection(collectionName, publicOnly = false) {
     if (!this.isFirebaseReady()) {
-      console.warn("Firebase services not ready, skipping collection fetch");
+      console.warn("AuthService not ready, skipping collection fetch");
       return [];
     }
 
     try {
-      const { collections, firestore } = this.firebaseServices;
-      let query = collections[collectionName];
+      const { collections, query, where, getDocs } = this.firebaseServices;
+      let q = collections[collectionName];
       
-      if (!query) {
+      if (!q) {
         console.warn(`Collection ${collectionName} not found`);
         return [];
       }
       
       if (publicOnly) {
-        query = firestore.query(query, firestore.where("public", "==", true));
+        q = query(q, where("public", "==", true));
       }
       
-      const snapshot = await firestore.getDocs(query);
+      const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({
         id: doc.id,
         type: collectionName === "houses" ? "house" : "bnb",
@@ -180,19 +207,20 @@ class StateManager {
 
   async loadUserData() {
     if (!this.isFirebaseReady()) {
+      console.warn("AuthService not ready, setting guest state");
       this.state.currentUser = null;
       this.state.role = "guest";
       return;
     }
     
-    const currentUser = this.firebaseServices.auth.currentUser || null;
-    this.state.currentUser = currentUser;
-    this.state.role = currentUser ? "authenticated" : "guest";
+    const userData = await window.authService.getCurrentUserData();
+    this.state.currentUser = userData || null;
+    this.state.role = userData ? userData.role || "guest" : "guest";
   }
 
   async loadListings() {
     if (!this.isFirebaseReady()) {
-      console.warn("Firebase not ready, skipping listings load");
+      console.warn("AuthService not ready, skipping listings load");
       this.state.listings = [];
       return;
     }
@@ -210,17 +238,18 @@ class StateManager {
 
   async loadFavorites() {
     if (!this.isFirebaseReady() || !this.state.currentUser) {
+      console.warn("AuthService not ready or no user, skipping favorites load");
       this.state.favorites = [];
       return;
     }
 
     try {
-      const { collections, firestore } = this.firebaseServices;
-      const favQuery = firestore.query(
+      const { collections, query, where, getDocs } = this.firebaseServices;
+      const favQuery = query(
         collections.favorites, 
-        firestore.where("userId", "==", this.state.currentUser.uid)
+        where("userId", "==", this.state.currentUser.uid)
       );
-      const favSnap = await firestore.getDocs(favQuery);
+      const favSnap = await getDocs(favQuery);
       this.state.favorites = favSnap.docs.map(doc => doc.data().listingId);
     } catch (err) {
       console.error("Error loading favorites:", err);
@@ -231,8 +260,13 @@ class StateManager {
   // Initialize state by fetching from Firebase
   async initializeState(callback) {
     try {
-      if (!this.firebaseServices) {
-        console.warn("Firebase services not initialized, skipping state initialization");
+      if (!this.isFirebaseReady()) {
+        console.warn("AuthService not initialized, initializing with guest state");
+        this.state.currentUser = null;
+        this.state.role = "guest";
+        this.state.listings = [];
+        this.state.favorites = [];
+        this.notify();
         if (typeof callback === "function") callback();
         return this;
       }
@@ -248,6 +282,7 @@ class StateManager {
       this.setError(err.message || "Error loading listings");
       this.state.listings = [];
       this.state.favorites = [];
+      this.notify();
       if (typeof callback === "function") callback();
     }
     return this;
@@ -281,17 +316,30 @@ export function createStateManager(firebaseServices = null) {
   return new StateManager(firebaseServices);
 }
 
-// Create default instance for backward compatibility
+// Create default instance
 const defaultStateManager = new StateManager();
 
 // Auto-initialize with window.firebaseServices if available
-if (typeof window !== 'undefined' && window.firebaseServices) {
-  defaultStateManager.setFirebaseServices(window.firebaseServices);
-}
-
-// Expose on window for backward compatibility
 if (typeof window !== 'undefined') {
-  window.state = defaultStateManager;
+  console.log("Checking window.firebaseServices for StateManager initialization");
+  const initializeStateManager = () => {
+    if (window.firebaseServices && window.authService?.isFirebaseReady()) {
+      console.log("Setting firebaseServices in defaultStateManager");
+      defaultStateManager.setFirebaseServices(window.firebaseServices);
+      window.state = defaultStateManager;
+    }
+  };
+
+  if (window.firebaseServices?.ready && window.authService?.isFirebaseReady()) {
+    console.log("Firebase and AuthService ready, initializing StateManager");
+    initializeStateManager();
+  } else {
+    console.log("Waiting for firebaseReady event to initialize StateManager");
+    window.addEventListener('firebaseReady', () => {
+      console.log("firebaseReady event received, initializing StateManager");
+      initializeStateManager();
+    }, { once: true });
+  }
 }
 
 // Export for module usage

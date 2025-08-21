@@ -27,25 +27,22 @@ class AppController {
     this.ui.setStateManager(this.state);
     
     try {
-      // Wait for Firebase and initialize
-      await this.waitForFirebase();
+      // Wait for Firebase and AuthService to be ready
+      await this.waitForServices();
       
-      // Only set Firebase services if they're actually ready
-      if (firebaseServices.ready && firebaseServices.collections && firebaseServices.firestore) {
-        this.state.setFirebaseServices(firebaseServices);
-      } else {
-        console.warn("Firebase services not fully ready, continuing without Firebase");
-      }
+      // Set Firebase services for state
+      this.state.setFirebaseServices(firebaseServices);
       
       // Set up auth listener
-      this.setupAuthListener();
+      await this.setupAuthListener();
       
-      // Initialize with current state (may be empty if Firebase not ready)
+      // Initialize state
       await this.state.initializeState();
       
     } catch (err) {
       console.error("Error during app initialization:", err);
-      // Continue initialization even if Firebase fails
+      // Continue initialization with guest state
+      await this.handleUserLogout();
     }
     
     // Initialize page-specific functionality
@@ -57,9 +54,20 @@ class AppController {
   // Register service worker
   registerServiceWorker() {
     if ("serviceWorker" in navigator) {
+      // Unregister Service Worker for development
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log("Service Worker unregistered for development:", registration);
+        }
+      });
+
+      // Enable in production
+      /*
       navigator.serviceWorker.register("/service-worker.js")
         .then(() => console.log("ServiceWorker registered"))
         .catch(err => console.error("ServiceWorker registration failed:", err));
+      */
     }
   }
 
@@ -79,24 +87,29 @@ class AppController {
     }
   }
 
-  // Wait for Firebase to be ready
-  async waitForFirebase() {
+  // Wait for Firebase and AuthService to be ready
+  async waitForServices() {
     return new Promise((resolve) => {
-      if (firebaseServices.ready) {
+      if (firebaseServices.ready && window.authService?.isFirebaseReady()) {
+        console.log("Firebase and AuthService ready, proceeding with app initialization");
         resolve();
         return;
       }
 
-      // Listen for firebaseReady event
+      console.log("Waiting for firebaseReady event in app.js");
       const onFirebaseReady = () => {
-        window.removeEventListener("firebaseReady", onFirebaseReady);
-        resolve();
+        if (window.authService?.isFirebaseReady()) {
+          console.log("firebaseReady event received and AuthService ready in app.js");
+          window.removeEventListener("firebaseReady", onFirebaseReady);
+          resolve();
+        }
       };
-      window.addEventListener("firebaseReady", onFirebaseReady);
+      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
 
       // Polling fallback
       const checkInterval = setInterval(() => {
-        if (firebaseServices.ready) {
+        if (firebaseServices.ready && window.authService?.isFirebaseReady()) {
+          console.log("Firebase and AuthService became ready via interval check");
           clearInterval(checkInterval);
           window.removeEventListener("firebaseReady", onFirebaseReady);
           resolve();
@@ -107,18 +120,17 @@ class AppController {
       setTimeout(() => {
         clearInterval(checkInterval);
         window.removeEventListener("firebaseReady", onFirebaseReady);
-        console.error("Firebase initialization timeout");
-        resolve();
+        console.warn("Firebase or AuthService initialization timeout in app.js");
+        resolve(); // Proceed without Firebase to avoid blocking
       }, 10000);
     });
   }
 
   // Set up Firebase auth listener
-  setupAuthListener() {
-    if (!firebaseServices.auth) {
-      console.warn("Firebase auth not available, skipping auth listener setup");
-      // Initialize with guest state
-      this.handleUserLogout().catch(console.error);
+  async setupAuthListener() {
+    if (!firebaseServices.auth || !window.authService?.isFirebaseReady()) {
+      console.warn("Firebase auth or AuthService not available, setting guest state");
+      await this.handleUserLogout();
       return;
     }
 
@@ -139,8 +151,8 @@ class AppController {
   // Handle user login
   async handleUserLogin(user) {
     try {
-      if (!this.state.isFirebaseReady()) {
-        // If Firebase isn't ready, just set basic user info
+      if (!window.authService?.isFirebaseReady()) {
+        console.warn("AuthService not ready, setting guest state");
         this.state.updateState({
           currentUser: { uid: user.uid, email: user.email },
           role: "guest"
@@ -148,13 +160,10 @@ class AppController {
         return;
       }
 
-      const userDocRef = firebaseServices.collections.users.doc(user.uid);
-      const userDoc = await userDocRef.get();
-      
-      if (userDoc.exists) {
-        const userData = userDoc.data();
+      const userData = await window.authService.getCurrentUserData();
+      if (userData) {
         this.state.updateState({
-          currentUser: { uid: user.uid, ...userData },
+          currentUser: userData,
           role: userData.role || "guest"
         });
       } else {
@@ -249,7 +258,6 @@ class AppController {
 
   // BnB page initialization
   initBnbPage() {
-    // Initialize browse page functionality first
     this.initBrowsePage();
     
     const amenitiesFilter = document.getElementById("amenities-filter");
@@ -276,15 +284,13 @@ class AppController {
       const currentState = this.state.getState();
       let listing = currentState.listings?.find(l => l.id === listingId);
 
-      // If listing not found in state, try to fetch from Firebase
-      if (!listing && firebaseServices.auth.currentUser) {
+      if (!listing && window.authService?.isFirebaseReady()) {
         listing = await this.fetchListingById(listingId);
         if (!listing) {
           window.location.href = "/browse.html";
           return;
         }
 
-        // Add to state
         this.state.updateState({
           listings: [...(currentState.listings || []), listing]
         });
@@ -305,6 +311,11 @@ class AppController {
 
   // Fetch listing by ID from Firebase
   async fetchListingById(listingId) {
+    if (!window.authService?.isFirebaseReady()) {
+      console.warn("AuthService not ready, cannot fetch listing");
+      return null;
+    }
+
     try {
       const houseDoc = await firebaseServices.collections.houses.doc(listingId).get();
       if (houseDoc.exists) {
@@ -347,6 +358,12 @@ class AppController {
 
   // Handle booking submission
   async handleBooking(listingId, listingType) {
+    if (!window.authService?.isFirebaseReady()) {
+      console.warn("AuthService not ready, cannot submit booking");
+      alert("Please try again later.");
+      return;
+    }
+
     const currentState = this.state.getState();
     
     if (!currentState.currentUser) {
@@ -389,13 +406,11 @@ class AppController {
   // Dashboard page initialization
   initDashboardPage() {
     console.log("Dashboard page initialized");
-    // Add dashboard-specific functionality here
   }
 
-  // Generate booking receipt (placeholder)
+  // Generate booking receipt
   generateBookingReceipt(bookingData) {
     console.log("Booking receipt generated for:", bookingData);
-    // Implement receipt generation logic here
   }
 }
 
@@ -405,11 +420,14 @@ class AppController {
 const appController = new AppController();
 
 // DOM ready event
-document.addEventListener("DOMContentLoaded", () => {
-  appController.init().catch(err => {
-    console.error("App initialization failed:", err);
+if (typeof document !== 'undefined') {
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOMContentLoaded, starting app initialization");
+    appController.init().catch(err => {
+      console.error("App initialization failed:", err);
+    });
   });
-});
+}
 
 // Export for global access and testing
 window.app = appController;
@@ -420,7 +438,7 @@ export function toggleMobileMenu() {
 }
 
 export function waitForFirebase() {
-  return appController.waitForFirebase();
+  return appController.waitForServices();
 }
 
 export function updateUIFromState() {

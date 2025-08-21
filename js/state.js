@@ -1,3 +1,4 @@
+// js/state.js
 // ==============================
 // state.js – Global Application State
 // ==============================
@@ -54,46 +55,45 @@ const state = {
       const locationOk = !location || listing.location.toLowerCase().includes(location.toLowerCase());
       const typeOk = !type || listing.type === type;
       const amenitiesOk = !amenities?.length || (listing.amenities && amenities.every(a => listing.amenities.includes(a)));
-
       return priceOk && locationOk && typeOk && amenitiesOk;
     });
   },
 
-  // Initialize state by fetching from Firebase
+  // Initialize state by fetching from Firebase (using firebaseServices wrapper)
   async initializeState(callback) {
     try {
-      if (!window.firebaseServices || !window.firebaseServices.collections) {
+      const { auth, collections, firestore } = window.firebaseServices || {};
+      if (!auth || !collections || !firestore) {
         console.warn("Firebase services not yet initialized, skipping state initialization");
         if (typeof callback === "function") callback();
         return;
       }
 
-      const currentUser = window.firebaseServices.auth.currentUser;
+      const currentUser = auth.currentUser || null;
       AppState.currentUser = currentUser;
+      AppState.role = currentUser ? "authenticated" : "guest";
 
-      let houses = [];
-      let bnbs = [];
-      let favorites = [];
+      // Helper function to fetch a collection, optionally filtered by public=true
+      const fetchCollection = async (colName, publicOnly = false) => {
+        let q = collections[colName];
+        if (!q) return [];
+        if (publicOnly) {
+          q = firestore.query(q, firestore.where("public", "==", true));
+        }
+        const snap = await firestore.getDocs(q);
+        return snap.docs.map(doc => ({ id: doc.id, type: colName === "houses" ? "house" : "bnb", ...doc.data() }));
+      };
 
-      // Fetch houses
-      let housesQuery = window.firebaseServices.collections.houses;
-      if (!currentUser) housesQuery = housesQuery.where("public", "==", true);
-      const housesSnap = await housesQuery.get();
-      houses = housesSnap.docs.map(doc => ({ id: doc.id, type: "house", ...doc.data() }));
-
-      // Fetch BnBs
-      let bnbsQuery = window.firebaseServices.collections.bnbs;
-      if (!currentUser) bnbsQuery = bnbsQuery.where("public", "==", true);
-      const bnbsSnap = await bnbsQuery.get();
-      bnbs = bnbsSnap.docs.map(doc => ({ id: doc.id, type: "bnb", ...doc.data() }));
-
+      // Fetch listings
+      const houses = await fetchCollection("houses", !currentUser);
+      const bnbs = await fetchCollection("bnbs", !currentUser);
       AppState.listings = [...houses, ...bnbs];
 
       // Fetch favorites for logged-in user
+      let favorites = [];
       if (currentUser) {
-        const favSnap = await window.firebaseServices.collections.favorites
-          .where("userId", "==", currentUser.uid)
-          .get();
+        const favQuery = firestore.query(collections.favorites, firestore.where("userId", "==", currentUser.uid));
+        const favSnap = await firestore.getDocs(favQuery);
         favorites = favSnap.docs.map(doc => doc.data().listingId);
       }
       AppState.favorites = favorites;
@@ -109,4 +109,5 @@ const state = {
   }
 };
 
+// Expose state globally
 window.state = state;

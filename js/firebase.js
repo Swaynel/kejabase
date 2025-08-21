@@ -1,15 +1,41 @@
-/* global firebase */
-
+// js/firebase.js
 // ==============================
-// firebase.js – Firebase initialization and services
+// Firebase initialization (modular v9)
 // ==============================
 
-// Make sure SDK scripts are loaded before this file
-if (!window.firebase) {
-  console.error("Firebase SDK not loaded!");
-}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getAuth,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  enableIndexedDbPersistence,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+  Timestamp,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
-// Firebase configuration
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsE-FHOqm9LRmC4ug82YeJ6Nyw8C1zWrc",
   authDomain: "kejabase.firebaseapp.com",
@@ -20,34 +46,43 @@ const firebaseConfig = {
   measurementId: "G-JTFBB4SG03"
 };
 
-// Initialize Firebase app
-firebase.initializeApp(firebaseConfig); // ← used now, removes ESLint warning
-
-// Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
-const storage = firebase.storage();
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Enable offline persistence
-db.enablePersistence().catch(err => {
-  if (err.code === 'failed-precondition') {
+enableIndexedDbPersistence(db).catch(err => {
+  if (err.code === "failed-precondition") {
     console.warn("⚠️ Multiple tabs open; persistence only works in one tab.");
-  } else if (err.code === 'unimplemented') {
-    console.warn("⚠️ Persistence is not supported in this browser.");
+  } else if (err.code === "unimplemented") {
+    console.warn("⚠️ Persistence not supported in this browser.");
   }
 });
 
-// Firestore collections
-const usersCollection = db.collection('users');
-const housesCollection = db.collection('houses');
-const bnbsCollection = db.collection('bnbs');
-const bookingsCollection = db.collection('bookings');
-const feedbackCollection = db.collection('feedback');
-const reportsCollection = db.collection('reports');
-const favoritesCollection = db.collection('favorites');
+// Collections
+const usersCollection = collection(db, "users");
+const housesCollection = collection(db, "houses");
+const bnbsCollection = collection(db, "bnbs");
+const bookingsCollection = collection(db, "bookings");
+const feedbackCollection = collection(db, "feedback");
+const reportsCollection = collection(db, "reports");
+const favoritesCollection = collection(db, "favorites");
 
-// Build global firebaseServices object
-window.firebaseServices = {
+// Helper functions
+const handleError = (error) => {
+  console.error("Firebase Error:", error);
+  const messages = {
+    "permission-denied": "You don't have permission to perform this action",
+    "unauthenticated": "Please sign in to continue",
+    "not-found": "The requested item was not found"
+  };
+  return { error: true, message: messages[error.code] || error.message || "Unexpected error" };
+};
+
+// Consolidate Firebase services
+const firebaseServices = {
   auth,
   db,
   storage,
@@ -60,24 +95,38 @@ window.firebaseServices = {
     reports: reportsCollection,
     favorites: favoritesCollection
   },
-  serverTimestamp: firebase.firestore.FieldValue.serverTimestamp,
-  arrayUnion: firebase.firestore.FieldValue.arrayUnion,
-  arrayRemove: firebase.firestore.FieldValue.arrayRemove,
-  increment: firebase.firestore.FieldValue.increment,
-  toTimestamp: date => firebase.firestore.Timestamp.fromDate(date),
-  handleError: error => {
-    console.error("Firebase Error:", error);
-    const messages = {
-      "permission-denied": "You don't have permission to perform this action",
-      "unauthenticated": "Please sign in to continue",
-      "not-found": "The requested item was not found"
-    };
-    return { error: true, message: messages[error.code] || error.message || "Unexpected error" };
-  }
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  increment,
+  toTimestamp: date => Timestamp.fromDate(date),
+  setPersistence: (rememberMe) => {
+    const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+    return setPersistence(auth, persistence);
+  },
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  onAuthStateChanged,
+  doc,
+  getDoc,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  handleError,
+  ready: true
 };
 
-// Mark Firebase as ready and dispatch event
-window.firebaseServices.ready = true;
-window.dispatchEvent(new CustomEvent('firebaseReady', { detail: { firebaseServices: window.firebaseServices } }));
+// Export the services for modular import
+export default firebaseServices;
 
-console.log("🔥 Firebase v9 compat services loaded successfully");
+// Optional: fire an event for listeners in your app (still ESLint-safe)
+if (typeof window !== "undefined") {
+  window.dispatchEvent(new CustomEvent("firebaseReady", { detail: { firebaseServices } }));
+}
+
+console.log("🔥 Firebase v9 modular services loaded successfully");

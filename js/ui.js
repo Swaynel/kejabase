@@ -4,15 +4,12 @@
 // ==============================
 
 const ui = {
-  // Show/hide loading indicators
   showLoading() {
     document.querySelectorAll('.loading-indicator').forEach(el => el.classList.remove('hidden'));
   },
   hideLoading() {
     document.querySelectorAll('.loading-indicator').forEach(el => el.classList.add('hidden'));
   },
-
-  // Show/hide errors
   showError(message, elementId = 'error-message') {
     const el = document.getElementById(elementId);
     if (el) {
@@ -24,8 +21,6 @@ const ui = {
     const el = document.getElementById(elementId);
     if (el) el.classList.add('hidden');
   },
-
-  // Update nav links based on auth state
   updateNavigation() {
     const currentState = state.AppState;
     document.querySelectorAll('[data-auth]').forEach(link => {
@@ -37,15 +32,11 @@ const ui = {
       link.classList.toggle('hidden', !shouldShow);
     });
   },
-
-  // Initialize date pickers
   initDatePickers() {
     document.querySelectorAll('input[type="date"]').forEach(input => {
       if (!input.value) input.value = new Date().toISOString().split('T')[0];
     });
   },
-
-  // Update favorite button
   updateFavoriteButton(listingId) {
     const btn = document.getElementById('favorite-button');
     if (!btn) return;
@@ -56,18 +47,13 @@ const ui = {
     btn.classList.toggle('bg-gray-200', !isFav);
     btn.classList.toggle('hover:bg-gray-300', !isFav);
   },
-
-  // Render multiple listings in a container
   renderListings(listings) {
     const container = document.getElementById('listings-container');
     if (!container) return;
 
     container.innerHTML = '';
     if (!listings.length) {
-      container.innerHTML = `
-        <div class="col-span-full text-center py-12">
-          <p class="text-lg text-gray-600">No listings match your filters.</p>
-        </div>`;
+      container.innerHTML = `<div class="col-span-full text-center py-12"><p class="text-lg text-gray-600">No listings match your filters.</p></div>`;
       return;
     }
 
@@ -115,8 +101,6 @@ const ui = {
       });
     });
   },
-
-  // Render single listing detail
   renderListingDetail(listing) {
     const container = document.getElementById('listing-detail-container');
     if (!container) return;
@@ -142,8 +126,6 @@ const ui = {
       state.toggleFavorite(listing.id, () => ui.updateFavoriteButton(listing.id));
     });
   },
-
-  // Initialize filters
   initFilters() {
     const typeSelect = document.getElementById('filter-type');
     if (typeSelect) typeSelect.addEventListener('change', e => {
@@ -176,8 +158,6 @@ const ui = {
       ui.renderListings(state.applyFilters());
     }));
   },
-
-  // Initialize UI
   init() {
     this.updateNavigation();
     this.initDatePickers();

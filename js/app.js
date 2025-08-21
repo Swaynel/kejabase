@@ -1,218 +1,397 @@
 // js/app.js
 import firebaseServices from './firebase.js';
-import { state } from './state.js';
-import { ui } from './ui.js';
+import state from './state.js';
+import ui from './ui.js';
 
 // ==============================
-// Main Initialization
+// App Controller Class
 // ==============================
-document.addEventListener("DOMContentLoaded", () => {
-  // Register service worker
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js")
-      .then(() => console.log("ServiceWorker registered"))
-      .catch(err => console.error("ServiceWorker registration failed:", err));
+class AppController {
+  constructor() {
+    this.state = state;
+    this.ui = ui;
+    this.initialized = false;
   }
 
-  // Mobile menu toggle
-  document.getElementById("mobile-menu-button")?.addEventListener("click", toggleMobileMenu);
+  // Initialize the application
+  async init() {
+    if (this.initialized) return;
+    
+    // Register service worker
+    this.registerServiceWorker();
+    
+    // Set up mobile menu
+    this.initMobileMenu();
+    
+    // Connect UI to state
+    this.ui.setStateManager(this.state);
+    
+    // Wait for Firebase and initialize
+    await this.waitForFirebase();
+    this.state.setFirebaseServices(firebaseServices);
+    
+    // Set up auth listener
+    this.setupAuthListener();
+    
+    // Initialize page-specific functionality
+    this.initPageSpecificFunctionality();
+    
+    this.initialized = true;
+  }
 
-  // Wait for Firebase
-  waitForFirebase().then(() => {
-    const path = window.location.pathname;
-    if (path.includes("browse.html")) initBrowsePage();
-    else if (path.includes("bnb.html")) initBnbPage();
-    else if (path.includes("house-detail.html")) initHouseDetailPage();
-    else if (path.includes("dashboard-")) initDashboardPage();
-  });
-});
+  // Register service worker
+  registerServiceWorker() {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js")
+        .then(() => console.log("ServiceWorker registered"))
+        .catch(err => console.error("ServiceWorker registration failed:", err));
+    }
+  }
 
-// ==============================
-// Wait for Firebase Ready
-// ==============================
-export function waitForFirebase() {
-  return new Promise(resolve => {
-    if (firebaseServices.ready) resolve();
-    else {
-      window.addEventListener("firebaseReady", () => resolve(), { once: true });
-      const check = setInterval(() => {
+  // Initialize mobile menu
+  initMobileMenu() {
+    const mobileMenuButton = document.getElementById("mobile-menu-button");
+    if (mobileMenuButton) {
+      mobileMenuButton.addEventListener("click", () => this.toggleMobileMenu());
+    }
+  }
+
+  // Toggle mobile menu
+  toggleMobileMenu() {
+    const mobileMenu = document.getElementById("mobile-menu");
+    if (mobileMenu) {
+      mobileMenu.classList.toggle("hidden");
+    }
+  }
+
+  // Wait for Firebase to be ready
+  async waitForFirebase() {
+    return new Promise((resolve) => {
+      if (firebaseServices.ready) {
+        resolve();
+        return;
+      }
+
+      // Listen for firebaseReady event
+      const onFirebaseReady = () => {
+        window.removeEventListener("firebaseReady", onFirebaseReady);
+        resolve();
+      };
+      window.addEventListener("firebaseReady", onFirebaseReady);
+
+      // Polling fallback
+      const checkInterval = setInterval(() => {
         if (firebaseServices.ready) {
-          clearInterval(check);
+          clearInterval(checkInterval);
+          window.removeEventListener("firebaseReady", onFirebaseReady);
           resolve();
         }
       }, 100);
-      setTimeout(() => { clearInterval(check); console.error("Firebase init timeout"); resolve(); }, 10000);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        window.removeEventListener("firebaseReady", onFirebaseReady);
+        console.error("Firebase initialization timeout");
+        resolve();
+      }, 10000);
+    });
+  }
+
+  // Set up Firebase auth listener
+  setupAuthListener() {
+    if (!firebaseServices.auth) {
+      console.warn("Firebase auth not available");
+      return;
     }
-  });
-}
 
-// ==============================
-// Mobile Menu
-// ==============================
-export function toggleMobileMenu() {
-  const mobileMenu = document.getElementById("mobile-menu");
-  if (mobileMenu) mobileMenu.classList.toggle("hidden");
-}
-
-// ==============================
-// UI State Sync
-// ==============================
-export function updateUIFromState() {
-  document.querySelectorAll("[data-auth]").forEach(el => {
-    const authState = el.getAttribute("data-auth");
-    el.style.display = (authState === "authenticated")
-      ? (state.AppState.currentUser ? "block" : "none")
-      : (state.AppState.currentUser ? "none" : "block");
-  });
-
-  document.querySelectorAll("[data-role]").forEach(el => {
-    const requiredRole = el.getAttribute("data-role");
-    el.style.display = state.AppState.role === requiredRole ? "block" : "none";
-  });
-}
-
-// ==============================
-// Auth Listener
-// ==============================
-waitForFirebase().then(() => {
-  firebaseServices.auth.onAuthStateChanged(async (user) => {
-    if (user) {
+    firebaseServices.auth.onAuthStateChanged(async (user) => {
       try {
-        const userDoc = await firebaseServices.collections.users.doc(user.uid).get();
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          await state.updateState({ currentUser: { uid: user.uid, ...userData }, role: userData.role || "guest" }, async () => {
-            await state.initializeState(updateUIFromState);
-          });
+        if (user) {
+          await this.handleUserLogin(user);
         } else {
-          console.warn("User document not found.");
-          await state.updateState({ currentUser: null, role: null }, updateUIFromState);
+          await this.handleUserLogout();
         }
       } catch (err) {
-        console.error("Error loading user:", err);
-        state.AppState.error = err.message || "Error loading user";
-        updateUIFromState();
+        console.error("Auth state change error:", err);
+        this.state.setError(err.message || "Authentication error");
       }
-    } else {
-      await state.updateState({ currentUser: null, role: null }, async () => {
-        await state.initializeState(updateUIFromState);
+    });
+  }
+
+  // Handle user login
+  async handleUserLogin(user) {
+    try {
+      const userDocRef = firebaseServices.collections.users.doc(user.uid);
+      const userDoc = await userDocRef.get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        this.state.updateState({
+          currentUser: { uid: user.uid, ...userData },
+          role: userData.role || "guest"
+        });
+        
+        await this.state.initializeState();
+      } else {
+        console.warn("User document not found for:", user.uid);
+        this.state.updateState({
+          currentUser: { uid: user.uid, email: user.email },
+          role: "guest"
+        });
+        
+        await this.state.initializeState();
+      }
+    } catch (err) {
+      console.error("Error loading user data:", err);
+      this.state.setError("Error loading user data");
+    }
+  }
+
+  // Handle user logout
+  async handleUserLogout() {
+    this.state.updateState({
+      currentUser: null,
+      role: null
+    });
+    
+    await this.state.initializeState();
+  }
+
+  // Initialize page-specific functionality
+  initPageSpecificFunctionality() {
+    const path = window.location.pathname;
+    
+    if (path.includes("browse.html")) {
+      this.initBrowsePage();
+    } else if (path.includes("bnb.html")) {
+      this.initBnbPage();
+    } else if (path.includes("house-detail.html")) {
+      this.initHouseDetailPage();
+    } else if (path.includes("dashboard-")) {
+      this.initDashboardPage();
+    }
+  }
+
+  // Browse page initialization
+  initBrowsePage() {
+    const locationFilter = document.getElementById("location-filter");
+    const priceFilter = document.getElementById("price-filter");
+    const typeFilter = document.getElementById("type-filter");
+    const resetBtn = document.getElementById("reset-filters");
+
+    if (locationFilter) {
+      locationFilter.addEventListener("input", (e) => {
+        const currentState = this.state.getState();
+        const newFilters = { ...currentState.filters, location: e.target.value };
+        this.state.updateState({ filters: newFilters });
+        this.ui.renderListings(this.state.applyFilters());
       });
     }
+
+    if (priceFilter) {
+      priceFilter.addEventListener("change", (e) => {
+        const [min, max] = e.target.value.split("-").map(Number);
+        const currentState = this.state.getState();
+        const newFilters = { ...currentState.filters, priceRange: [min || 0, max || Infinity] };
+        this.state.updateState({ filters: newFilters });
+        this.ui.renderListings(this.state.applyFilters());
+      });
+    }
+
+    if (typeFilter) {
+      typeFilter.addEventListener("change", (e) => {
+        const currentState = this.state.getState();
+        const newFilters = { ...currentState.filters, type: e.target.value };
+        this.state.updateState({ filters: newFilters });
+        this.ui.renderListings(this.state.applyFilters());
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        this.state.resetFilters();
+        const currentState = this.state.getState();
+        this.ui.renderListings(currentState.listings);
+      });
+    }
+
+    // Initial render
+    const currentState = this.state.getState();
+    this.ui.renderListings(currentState.listings);
+  }
+
+  // BnB page initialization
+  initBnbPage() {
+    // Initialize browse page functionality first
+    this.initBrowsePage();
+    
+    const amenitiesFilter = document.getElementById("amenities-filter");
+    if (amenitiesFilter) {
+      amenitiesFilter.addEventListener("change", (e) => {
+        const selectedAmenities = Array.from(e.target.selectedOptions).map(opt => opt.value);
+        const currentState = this.state.getState();
+        const newFilters = { ...currentState.filters, amenities: selectedAmenities };
+        this.state.updateState({ filters: newFilters });
+        this.ui.renderListings(this.state.applyFilters());
+      });
+    }
+  }
+
+  // House detail page initialization
+  async initHouseDetailPage() {
+    const listingId = new URLSearchParams(window.location.search).get("id");
+    if (!listingId) {
+      window.location.href = "/browse.html";
+      return;
+    }
+
+    try {
+      const currentState = this.state.getState();
+      let listing = currentState.listings?.find(l => l.id === listingId);
+
+      // If listing not found in state, try to fetch from Firebase
+      if (!listing && firebaseServices.auth.currentUser) {
+        listing = await this.fetchListingById(listingId);
+        if (!listing) {
+          window.location.href = "/browse.html";
+          return;
+        }
+
+        // Add to state
+        this.state.updateState({
+          listings: [...(currentState.listings || []), listing]
+        });
+      }
+
+      if (listing) {
+        this.ui.renderListingDetail(listing);
+        this.setupBookingForm(listingId, listing.type);
+        this.setupFavoriteButton(listingId);
+      } else {
+        window.location.href = "/browse.html";
+      }
+    } catch (err) {
+      console.error("Error initializing house detail page:", err);
+      window.location.href = "/browse.html";
+    }
+  }
+
+  // Fetch listing by ID from Firebase
+  async fetchListingById(listingId) {
+    try {
+      const houseDoc = await firebaseServices.collections.houses.doc(listingId).get();
+      if (houseDoc.exists) {
+        return { id: houseDoc.id, ...houseDoc.data(), type: "house" };
+      }
+
+      const bnbDoc = await firebaseServices.collections.bnbs.doc(listingId).get();
+      if (bnbDoc.exists) {
+        return { id: bnbDoc.id, ...bnbDoc.data(), type: "bnb" };
+      }
+
+      return null;
+    } catch (err) {
+      console.error("Error fetching listing:", err);
+      return null;
+    }
+  }
+
+  // Set up booking form
+  setupBookingForm(listingId, listingType) {
+    const bookingForm = document.getElementById("booking-form");
+    if (bookingForm) {
+      bookingForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        this.handleBooking(listingId, listingType);
+      });
+    }
+  }
+
+  // Set up favorite button
+  setupFavoriteButton(listingId) {
+    const favoriteButton = document.getElementById("favorite-button");
+    if (favoriteButton) {
+      favoriteButton.addEventListener("click", () => {
+        this.state.toggleFavorite(listingId);
+        this.ui.updateFavoriteButton(listingId);
+      });
+    }
+  }
+
+  // Handle booking submission
+  async handleBooking(listingId, listingType) {
+    const currentState = this.state.getState();
+    
+    if (!currentState.currentUser) {
+      alert("Please login to make a booking.");
+      return;
+    }
+
+    const bookingForm = document.getElementById("booking-form");
+    if (!bookingForm) return;
+
+    try {
+      this.ui.showLoading();
+
+      const formData = new FormData(bookingForm);
+      const bookingData = {
+        listingId,
+        listingType,
+        userId: currentState.currentUser.uid,
+        startDate: formData.get("start-date"),
+        endDate: formData.get("end-date"),
+        guests: parseInt(formData.get("guests")),
+        specialRequests: formData.get("special-requests"),
+        status: "pending",
+        createdAt: firebaseServices.serverTimestamp()
+      };
+
+      const docRef = await firebaseServices.collections.bookings.add(bookingData);
+      this.generateBookingReceipt({ id: docRef.id, ...bookingData });
+      
+      alert("Booking submitted successfully!");
+      bookingForm.reset();
+    } catch (err) {
+      console.error("Booking error:", err);
+      alert("Booking failed. Please try again.");
+    } finally {
+      this.ui.hideLoading();
+    }
+  }
+
+  // Dashboard page initialization
+  initDashboardPage() {
+    console.log("Dashboard page initialized");
+    // Add dashboard-specific functionality here
+  }
+
+  // Generate booking receipt (placeholder)
+  generateBookingReceipt(bookingData) {
+    console.log("Booking receipt generated for:", bookingData);
+    // Implement receipt generation logic here
+  }
+}
+
+// ==============================
+// Initialize Application
+// ==============================
+const appController = new AppController();
+
+// DOM ready event
+document.addEventListener("DOMContentLoaded", () => {
+  appController.init().catch(err => {
+    console.error("App initialization failed:", err);
   });
 });
 
-// ==============================
-// Browse Page
-// ==============================
-export function initBrowsePage() {
-  const locationFilter = document.getElementById("location-filter");
-  const priceFilter = document.getElementById("price-filter");
-  const typeFilter = document.getElementById("type-filter");
-  const resetBtn = document.getElementById("reset-filters");
+// Export for global access and testing
+window.app = appController;
 
-  locationFilter?.addEventListener("input", () => {
-    state.updateState({ filters: { ...state.AppState.filters, location: locationFilter.value } }, () => ui.renderListings(state.applyFilters()));
-  });
-
-  priceFilter?.addEventListener("change", () => {
-    const [min, max] = priceFilter.value.split("-").map(Number);
-    state.updateState({ filters: { ...state.AppState.filters, priceRange: [min || 0, max || Infinity] } }, () => ui.renderListings(state.applyFilters()));
-  });
-
-  typeFilter?.addEventListener("change", () => {
-    state.updateState({ filters: { ...state.AppState.filters, type: typeFilter.value } }, () => ui.renderListings(state.applyFilters()));
-  });
-
-  resetBtn?.addEventListener("click", () => {
-    state.resetFilters(() => ui.renderListings(state.AppState.listings));
-  });
-
-  ui.renderListings(state.AppState.listings);
+// Export individual functions for backward compatibility
+export const { toggleMobileMenu, waitForFirebase } = appController;
+export function updateUIFromState() {
+  return appController.ui.updateFromState();
 }
 
-// ==============================
-// BnB Page
-// ==============================
-export function initBnbPage() {
-  initBrowsePage();
-  const amenitiesFilter = document.getElementById("amenities-filter");
-  amenitiesFilter?.addEventListener("change", () => {
-    const selectedAmenities = Array.from(amenitiesFilter.selectedOptions).map(opt => opt.value);
-    state.updateState({ filters: { ...state.AppState.filters, amenities: selectedAmenities } }, () => ui.renderListings(state.applyFilters()));
-  });
-}
-
-// ==============================
-// House Detail Page
-// ==============================
-export async function initHouseDetailPage() {
-  const listingId = new URLSearchParams(window.location.search).get("id");
-  if (!listingId) return (window.location.href = "/browse.html");
-
-  let listing = state.AppState.listings.find(l => l.id === listingId);
-
-  if (!listing && firebaseServices.auth.currentUser) {
-    try {
-      const houseDoc = await firebaseServices.collections.houses.doc(listingId).get();
-      const bnbDoc = await firebaseServices.collections.bnbs.doc(listingId).get();
-      if (houseDoc.exists) listing = { id: houseDoc.id, ...houseDoc.data(), type: "house" };
-      else if (bnbDoc.exists) listing = { id: bnbDoc.id, ...bnbDoc.data(), type: "bnb" };
-      else return (window.location.href = "/browse.html");
-
-      state.updateState({ listings: [...state.AppState.listings, listing] }, () => ui.renderListingDetail(listing));
-    } catch (err) {
-      console.error(err);
-      window.location.href = "/browse.html";
-    }
-  } else ui.renderListingDetail(listing);
-
-  const bookingForm = document.getElementById("booking-form");
-  bookingForm?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    handleBooking(listingId, listing.type);
-  });
-
-  const favoriteButton = document.getElementById("favorite-button");
-  favoriteButton?.addEventListener("click", () => state.toggleFavorite(listingId, updateUIFromState));
-}
-
-// ==============================
-// Booking
-// ==============================
-export function handleBooking(listingId, listingType) {
-  if (!state.AppState.currentUser) return alert("Please login to make a booking.");
-
-  const bookingForm = document.getElementById("booking-form");
-  if (!bookingForm) return;
-
-  const formData = new FormData(bookingForm);
-  const bookingData = {
-    listingId,
-    listingType,
-    userId: state.AppState.currentUser.uid,
-    startDate: formData.get("start-date"),
-    endDate: formData.get("end-date"),
-    guests: parseInt(formData.get("guests")),
-    specialRequests: formData.get("special-requests"),
-    status: "pending",
-    createdAt: firebaseServices.serverTimestamp()
-  };
-
-  firebaseServices.collections.bookings.add(bookingData)
-    .then(docRef => generateBookingReceipt({ id: docRef.id, ...bookingData }))
-    .catch(err => { console.error(err); alert("Booking failed. Please try again."); });
-}
-
-// ==============================
-// Dashboard Page
-// ==============================
-export function initDashboardPage() {
-  console.log("Dashboard page initialized");
-}
-
-// ==============================
-// Booking Receipt Stub
-// ==============================
-export function generateBookingReceipt(bookingData) {
-  console.log("Booking receipt generated for:", bookingData);
-}
+export default appController;

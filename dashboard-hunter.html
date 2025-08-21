@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hunter Dashboard | Kejabase</title>
   <link href="./dist/output.css" rel="stylesheet">
-
   <link rel="manifest" href="/manifest.json">
 </head>
 <body class="bg-gray-100">
@@ -30,49 +29,28 @@
           </div>
           <nav class="flex-1 px-2 space-y-1">
             <a href="/dashboard-hunter.html" class="bg-indigo-900 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
+              <!-- SVG icon -->
               Dashboard
             </a>
             <a href="/browse.html" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
               Browse Homes
             </a>
             <a href="/bnb.html" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-              </svg>
               Browse BnBs
             </a>
             <a href="#" id="my-bookings" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
               My Bookings
             </a>
             <a href="#" id="favorites" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
               Favorites
             </a>
             <a href="#" class="text-indigo-100 hover:bg-indigo-600 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-              <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
               Settings
             </a>
           </nav>
         </div>
         <div class="p-4 border-t border-indigo-700">
           <button id="sign-out" class="flex items-center text-sm font-medium text-indigo-200 hover:text-white">
-            <svg class="mr-2 h-5 w-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
             Sign out
           </button>
         </div>
@@ -81,344 +59,15 @@
 
     <!-- Main content -->
     <div class="flex flex-col flex-1 overflow-hidden">
-      <!-- Mobile top navigation -->
-      <div class="md:hidden bg-white shadow-sm">
-        <div class="flex items-center justify-between h-16 px-4">
-          <div>
-            <button id="mobile-menu-button" class="text-gray-500">
-              <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-          <div class="text-xl font-bold text-indigo-600">Kejabase</div>
-          <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-            <span id="mobile-user-initial">U</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mobile sidebar (hidden by default) -->
-      <div id="mobile-menu" class="hidden md:hidden bg-indigo-800 text-white">
-        <div class="px-4 py-4 border-b border-indigo-700">
-          <div class="flex items-center">
-            <div class="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-              <span id="mobile-user-initial-sidebar">U</span>
-            </div>
-            <div class="ml-3">
-              <p id="mobile-user-name" class="text-sm font-medium text-white">User Name</p>
-              <p class="text-xs font-medium text-indigo-200">Hunter</p>
-            </div>
-          </div>
-        </div>
-        <nav class="px-2 py-3 space-y-1">
-          <a href="/dashboard-hunter.html" class="bg-indigo-900 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">
-            <svg class="mr-3 h-6 w-6 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-          </a>
-          <!-- Other mobile menu items same as desktop -->
-        </nav>
-        <div class="px-2 py-3 border-t border-indigo-700">
-          <button id="mobile-sign-out" class="flex items-center text-sm font-medium text-indigo-200 hover:text-white">
-            <svg class="mr-2 h-5 w-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      <!-- Main content area -->
-      <div class="flex-1 overflow-auto p-4">
-        <div class="max-w-7xl mx-auto">
-          <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p class="text-gray-600">Welcome back, <span id="greeting-name">User</span>!</p>
-          </div>
-
-          <!-- Stats cards -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white p-4 rounded-lg shadow">
-              <div class="flex items-center">
-                <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
-                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-gray-500">Active Bookings</p>
-                  <p id="active-bookings" class="text-2xl font-semibold text-gray-900">0</p>
-                </div>
-              </div>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow">
-              <div class="flex items-center">
-                <div class="p-3 rounded-full bg-green-100 text-green-600">
-                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-gray-500">Completed Bookings</p>
-                  <p id="completed-bookings" class="text-2xl font-semibold text-gray-900">0</p>
-                </div>
-              </div>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow">
-              <div class="flex items-center">
-                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
-                  <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-gray-500">Favorites</p>
-                  <p id="favorites-count" class="text-2xl font-semibold text-gray-900">0</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Recent bookings -->
-          <div class="bg-white p-4 rounded-lg shadow mb-6">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-medium text-gray-900">Recent Bookings</h2>
-              <a href="#" id="view-all-bookings" class="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="recent-bookings" class="bg-white divide-y divide-gray-200">
-                  <!-- Bookings will be inserted here -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- Recommended listings -->
-          <div class="bg-white p-4 rounded-lg shadow">
-            <div class="flex justify-between items-center mb-4">
-              <h2 class="text-lg font-medium text-gray-900">Recommended For You</h2>
-              <a href="/browse.html" class="text-sm text-indigo-600 hover:text-indigo-500">Browse all</a>
-            </div>
-            <div id="recommended-listings" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <!-- Recommended listings will be inserted here -->
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Mobile top navigation and menu -->
+      <div id="mobile-menu" class="hidden md:hidden"></div>
+      <div class="flex-1 overflow-auto p-4" id="main-content"></div>
     </div>
   </div>
 
-  <script src="/js/firebase.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/state.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Mobile menu toggle
-      const mobileMenuButton = document.getElementById('mobile-menu-button');
-      const mobileMenu = document.getElementById('mobile-menu');
-      
-      if (mobileMenuButton && mobileMenu) {
-        mobileMenuButton.addEventListener('click', function() {
-          mobileMenu.classList.toggle('hidden');
-        });
-      }
-      
-      // Sign out buttons
-      const signOutButtons = [
-        document.getElementById('sign-out'),
-        document.getElementById('mobile-sign-out')
-      ];
-      
-      signOutButtons.forEach(button => {
-        if (button) {
-          button.addEventListener('click', function() {
-            auth.signOut()
-              .then(() => {
-                window.location.href = '/login-hunter.html';
-              });
-          });
-        }
-      });
-      
-      // Update user info in sidebar
-      const currentState = state.getState();
-      if (currentState.currentUser) {
-        // Get user details from Firestore
-        firebaseServices.collections.users.doc(currentState.currentUser.uid).get()
-          .then(doc => {
-            if (doc.exists) {
-              const userData = doc.data();
-              const userName = userData.name || 'User';
-              const userInitial = userName.charAt(0).toUpperCase();
-              
-              // Update all name elements
-              document.querySelectorAll('#user-name, #mobile-user-name, #greeting-name').forEach(el => {
-                el.textContent = userName;
-              });
-              
-              // Update all initial elements
-              document.querySelectorAll('#user-initial, #mobile-user-initial, #mobile-user-initial-sidebar').forEach(el => {
-                el.textContent = userInitial;
-              });
-            }
-          });
-      }
-      
-      // Load bookings data
-      if (currentState.currentUser) {
-        loadBookings(currentState.currentUser.uid);
-        loadRecommendedListings();
-      }
-      
-      // My Bookings link
-      document.getElementById('my-bookings')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        document.getElementById('view-all-bookings').click();
-      });
-      
-      // Favorites link
-      document.getElementById('favorites')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        // In a full implementation, this would show favorites
-        alert('Favorites feature coming soon!');
-      });
-    });
-    
-    function loadBookings(userId) {
-      firebaseServices.collections.bookings
-        .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
-        .limit(5)
-        .get()
-        .then(querySnapshot => {
-          const bookings = [];
-          let activeCount = 0;
-          let completedCount = 0;
-          
-          querySnapshot.forEach(doc => {
-            const booking = { id: doc.id, ...doc.data() };
-            bookings.push(booking);
-            
-            if (booking.status === 'completed') {
-              completedCount++;
-            } else {
-              activeCount++;
-            }
-          });
-          
-          // Update stats
-          document.getElementById('active-bookings').textContent = activeCount;
-          document.getElementById('completed-bookings').textContent = completedCount;
-          
-          // Update recent bookings table
-          const bookingsTable = document.getElementById('recent-bookings');
-          if (bookingsTable) {
-            bookingsTable.innerHTML = '';
-            
-            if (bookings.length === 0) {
-              bookingsTable.innerHTML = `
-                <tr>
-                  <td colspan="4" class="px-6 py-4 text-center text-gray-500">No recent bookings found</td>
-                </tr>
-              `;
-              return;
-            }
-            
-            bookings.forEach(booking => {
-              const row = document.createElement('tr');
-              
-              // Get listing details (simplified - in real app we'd fetch this)
-              const listingTitle = booking.listingType === 'bnb' ? 'BnB Listing' : 'House Listing';
-              const statusClass = booking.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-              
-              row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm font-medium text-gray-900">${listingTitle}</div>
-                  <div class="text-sm text-gray-500">ID: ${booking.id}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="text-sm text-gray-900">${new Date(booking.startDate).toLocaleDateString()} - ${new Date(booking.endDate).toLocaleDateString()}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                    ${booking.status}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <a href="/house-detail.html?id=${booking.listingId}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                  <a href="#" class="text-gray-600 hover:text-gray-900">Receipt</a>
-                </td>
-              `;
-              
-              bookingsTable.appendChild(row);
-            });
-          }
-        })
-        .catch(error => {
-          console.error("Error loading bookings:", error);
-        });
-    }
-    
-    function loadRecommendedListings() {
-      const currentState = state.getState();
-      const favoritesCount = currentState.favorites.length;
-      document.getElementById('favorites-count').textContent = favoritesCount;
-      
-      // Simplified recommendation logic - in real app we'd use more sophisticated algorithm
-      const recommendedContainer = document.getElementById('recommended-listings');
-      if (recommendedContainer) {
-        recommendedContainer.innerHTML = '';
-        
-        // Get 3 random listings (or all if less than 3)
-        const listings = currentState.listings;
-        const shuffled = [...listings].sort(() => 0.5 - Math.random());
-        const recommended = shuffled.slice(0, 3);
-        
-        if (recommended.length === 0) {
-          recommendedContainer.innerHTML = `
-            <div class="col-span-full text-center py-8">
-              <p class="text-gray-500">No recommendations available. Browse our listings to get personalized recommendations.</p>
-            </div>
-          `;
-          return;
-        }
-        
-        recommended.forEach(listing => {
-          const listingElement = document.createElement('div');
-          listingElement.className = 'bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow';
-          listingElement.innerHTML = `
-            <a href="/house-detail.html?id=${listing.id}">
-              <img src="${listing.images[0] || '/images/placeholder.jpg'}" alt="${listing.title}" class="w-full h-48 object-cover">
-              <div class="p-4">
-                <h3 class="font-semibold text-lg mb-1">${listing.title}</h3>
-                <p class="text-gray-600 text-sm mb-2">${listing.location}</p>
-                <div class="flex justify-between items-center">
-                  <span class="font-bold">$${listing.price}${listing.type === 'bnb' ? '/night' : '/month'}</span>
-                  <div class="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span class="ml-1 text-sm">${listing.rating || 'New'}</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          `;
-          recommendedContainer.appendChild(listingElement);
-        });
-      }
-    }
-  </script>
+  <!-- Modular scripts -->
+  <script type="module" src="/js/firebase.js"></script>
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module" src="/js/state.js"></script>
 </body>
 </html>

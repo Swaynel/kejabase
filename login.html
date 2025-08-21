@@ -98,35 +98,16 @@
     </div>
   </footer>
 
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <!-- Firebase SDKs (modular v9) -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
 
   <!-- Local Firebase init, state, and auth scripts -->
-  <script src="js/firebase.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/authService.js"></script>
-
-  <!-- Mobile menu + service worker -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      // Mobile menu toggle
-      document.getElementById('mobile-menu-button')?.addEventListener('click', () => {
-        document.getElementById('mobile-menu').classList.toggle('hidden');
-      });
-
-      // Register service worker
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('ServiceWorker registered:', reg))
-            .catch(err => console.error('ServiceWorker registration failed:', err));
-        });
-      }
-    });
-  </script>
+  <script type="module" src="js/firebase.js"></script>
+  <script type="module" src="js/state.js"></script>
+  <script type="module" src="js/authService.js"></script>
 
 </body>
 </html>

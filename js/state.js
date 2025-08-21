@@ -138,31 +138,52 @@ class StateManager {
     return this.applyFilters();
   }
 
+  // Check if Firebase services are properly initialized
+  isFirebaseReady() {
+    return this.firebaseServices && 
+           this.firebaseServices.collections && 
+           this.firebaseServices.firestore &&
+           this.firebaseServices.auth;
+  }
+
   // Firebase integration methods
   async fetchCollection(collectionName, publicOnly = false) {
-    if (!this.firebaseServices) {
-      throw new Error("Firebase services not initialized");
+    if (!this.isFirebaseReady()) {
+      console.warn("Firebase services not ready, skipping collection fetch");
+      return [];
     }
 
-    const { collections, firestore } = this.firebaseServices;
-    let query = collections[collectionName];
-    
-    if (!query) return [];
-    
-    if (publicOnly) {
-      query = firestore.query(query, firestore.where("public", "==", true));
+    try {
+      const { collections, firestore } = this.firebaseServices;
+      let query = collections[collectionName];
+      
+      if (!query) {
+        console.warn(`Collection ${collectionName} not found`);
+        return [];
+      }
+      
+      if (publicOnly) {
+        query = firestore.query(query, firestore.where("public", "==", true));
+      }
+      
+      const snapshot = await firestore.getDocs(query);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        type: collectionName === "houses" ? "house" : "bnb",
+        ...doc.data()
+      }));
+    } catch (err) {
+      console.error(`Error fetching collection ${collectionName}:`, err);
+      return [];
     }
-    
-    const snapshot = await firestore.getDocs(query);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      type: collectionName === "houses" ? "house" : "bnb",
-      ...doc.data()
-    }));
   }
 
   async loadUserData() {
-    if (!this.firebaseServices?.auth) return;
+    if (!this.isFirebaseReady()) {
+      this.state.currentUser = null;
+      this.state.role = "guest";
+      return;
+    }
     
     const currentUser = this.firebaseServices.auth.currentUser || null;
     this.state.currentUser = currentUser;
@@ -170,27 +191,41 @@ class StateManager {
   }
 
   async loadListings() {
-    if (!this.firebaseServices) return;
+    if (!this.isFirebaseReady()) {
+      console.warn("Firebase not ready, skipping listings load");
+      this.state.listings = [];
+      return;
+    }
     
-    const { currentUser } = this.state;
-    const houses = await this.fetchCollection("houses", !currentUser);
-    const bnbs = await this.fetchCollection("bnbs", !currentUser);
-    this.state.listings = [...houses, ...bnbs];
+    try {
+      const { currentUser } = this.state;
+      const houses = await this.fetchCollection("houses", !currentUser);
+      const bnbs = await this.fetchCollection("bnbs", !currentUser);
+      this.state.listings = [...houses, ...bnbs];
+    } catch (err) {
+      console.error("Error loading listings:", err);
+      this.state.listings = [];
+    }
   }
 
   async loadFavorites() {
-    if (!this.firebaseServices || !this.state.currentUser) {
+    if (!this.isFirebaseReady() || !this.state.currentUser) {
       this.state.favorites = [];
       return;
     }
 
-    const { collections, firestore } = this.firebaseServices;
-    const favQuery = firestore.query(
-      collections.favorites, 
-      firestore.where("userId", "==", this.state.currentUser.uid)
-    );
-    const favSnap = await firestore.getDocs(favQuery);
-    this.state.favorites = favSnap.docs.map(doc => doc.data().listingId);
+    try {
+      const { collections, firestore } = this.firebaseServices;
+      const favQuery = firestore.query(
+        collections.favorites, 
+        firestore.where("userId", "==", this.state.currentUser.uid)
+      );
+      const favSnap = await firestore.getDocs(favQuery);
+      this.state.favorites = favSnap.docs.map(doc => doc.data().listingId);
+    } catch (err) {
+      console.error("Error loading favorites:", err);
+      this.state.favorites = [];
+    }
   }
 
   // Initialize state by fetching from Firebase

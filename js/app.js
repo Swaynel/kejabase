@@ -26,12 +26,27 @@ class AppController {
     // Connect UI to state
     this.ui.setStateManager(this.state);
     
-    // Wait for Firebase and initialize
-    await this.waitForFirebase();
-    this.state.setFirebaseServices(firebaseServices);
-    
-    // Set up auth listener
-    this.setupAuthListener();
+    try {
+      // Wait for Firebase and initialize
+      await this.waitForFirebase();
+      
+      // Only set Firebase services if they're actually ready
+      if (firebaseServices.ready && firebaseServices.collections && firebaseServices.firestore) {
+        this.state.setFirebaseServices(firebaseServices);
+      } else {
+        console.warn("Firebase services not fully ready, continuing without Firebase");
+      }
+      
+      // Set up auth listener
+      this.setupAuthListener();
+      
+      // Initialize with current state (may be empty if Firebase not ready)
+      await this.state.initializeState();
+      
+    } catch (err) {
+      console.error("Error during app initialization:", err);
+      // Continue initialization even if Firebase fails
+    }
     
     // Initialize page-specific functionality
     this.initPageSpecificFunctionality();
@@ -101,7 +116,9 @@ class AppController {
   // Set up Firebase auth listener
   setupAuthListener() {
     if (!firebaseServices.auth) {
-      console.warn("Firebase auth not available");
+      console.warn("Firebase auth not available, skipping auth listener setup");
+      // Initialize with guest state
+      this.handleUserLogout().catch(console.error);
       return;
     }
 
@@ -122,6 +139,15 @@ class AppController {
   // Handle user login
   async handleUserLogin(user) {
     try {
+      if (!this.state.isFirebaseReady()) {
+        // If Firebase isn't ready, just set basic user info
+        this.state.updateState({
+          currentUser: { uid: user.uid, email: user.email },
+          role: "guest"
+        });
+        return;
+      }
+
       const userDocRef = firebaseServices.collections.users.doc(user.uid);
       const userDoc = await userDocRef.get();
       
@@ -131,17 +157,16 @@ class AppController {
           currentUser: { uid: user.uid, ...userData },
           role: userData.role || "guest"
         });
-        
-        await this.state.initializeState();
       } else {
         console.warn("User document not found for:", user.uid);
         this.state.updateState({
           currentUser: { uid: user.uid, email: user.email },
           role: "guest"
         });
-        
-        await this.state.initializeState();
       }
+      
+      // Load user-specific data
+      await this.state.initializeState();
     } catch (err) {
       console.error("Error loading user data:", err);
       this.state.setError("Error loading user data");
@@ -152,9 +177,10 @@ class AppController {
   async handleUserLogout() {
     this.state.updateState({
       currentUser: null,
-      role: null
+      role: "guest"
     });
     
+    // Initialize with public data only
     await this.state.initializeState();
   }
 
@@ -389,9 +415,40 @@ document.addEventListener("DOMContentLoaded", () => {
 window.app = appController;
 
 // Export individual functions for backward compatibility
-export const { toggleMobileMenu, waitForFirebase } = appController;
+export function toggleMobileMenu() {
+  return appController.toggleMobileMenu();
+}
+
+export function waitForFirebase() {
+  return appController.waitForFirebase();
+}
+
 export function updateUIFromState() {
   return appController.ui.updateFromState();
+}
+
+export function initBrowsePage() {
+  return appController.initBrowsePage();
+}
+
+export function initBnbPage() {
+  return appController.initBnbPage();
+}
+
+export function initHouseDetailPage() {
+  return appController.initHouseDetailPage();
+}
+
+export function initDashboardPage() {
+  return appController.initDashboardPage();
+}
+
+export function handleBooking(listingId, listingType) {
+  return appController.handleBooking(listingId, listingType);
+}
+
+export function generateBookingReceipt(bookingData) {
+  return appController.generateBookingReceipt(bookingData);
 }
 
 export default appController;

@@ -12,7 +12,7 @@ const authService = {
         window.addEventListener('firebaseReady', () => {
           resolve();
         }, { once: true });
-        
+
         // Fallback polling method
         const checkFirebase = setInterval(() => {
           if (window.firebaseServices && window.firebaseServices.ready) {
@@ -20,7 +20,7 @@ const authService = {
             resolve();
           }
         }, 100);
-        
+
         // Timeout after 5 seconds
         setTimeout(() => {
           clearInterval(checkFirebase);
@@ -34,10 +34,10 @@ const authService = {
   // Sign in with email/password & Firestore role check
   signInWithEmailAndPassword: async function(email, password, rememberMe = false) {
     await this.waitForFirebase();
-    
+
     const persistence = rememberMe
-      ? firebase.auth.Auth.Persistence.LOCAL
-      : firebase.auth.Auth.Persistence.SESSION;
+      ? window.firebaseServices.auth.Auth.Persistence.LOCAL
+      : window.firebaseServices.auth.Auth.Persistence.SESSION;
 
     return window.firebaseServices.auth.setPersistence(persistence)
       .then(() => window.firebaseServices.auth.signInWithEmailAndPassword(email, password))
@@ -69,7 +69,7 @@ const authService = {
   // Check if user is already authenticated and redirect appropriately
   checkAuthAndRedirect: async function() {
     await this.waitForFirebase();
-    
+
     return new Promise((resolve) => {
       window.firebaseServices.auth.onAuthStateChanged(async (user) => {
         if (user) {
@@ -79,7 +79,7 @@ const authService = {
               resolve({ isAuthenticated: false });
               return;
             }
-            
+
             const role = userDoc.data()?.role;
             let dashboard;
             switch(role) {
@@ -104,7 +104,7 @@ const authService = {
   // Get current user role
   getCurrentUserRole: async function() {
     await this.waitForFirebase();
-    
+
     return new Promise((resolve) => {
       const user = window.firebaseServices.auth.currentUser;
       if (user) {
@@ -145,11 +145,9 @@ const authService = {
   signOut: async function() {
     await this.waitForFirebase();
     return window.firebaseServices.auth.signOut().then(() => {
-      // Clear any cached state
       if (window.state && window.state.updateState) {
         window.state.updateState({ currentUser: null, role: null });
       }
-      // Redirect to home page
       window.location.href = '/';
     });
   },
@@ -160,10 +158,9 @@ const authService = {
     return window.firebaseServices.auth.createUserWithEmailAndPassword(email, password)
       .then(userCredential => {
         const uid = userCredential.user.uid;
-        // Save user data to Firestore
         return window.firebaseServices.collections.users.doc(uid).set({
           email: email,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdAt: window.firebaseServices.serverTimestamp(),
           ...userData
         }).then(() => {
           return { user: userCredential.user, role: userData.role };
@@ -176,7 +173,6 @@ const authService = {
 // Auto-redirect for authenticated users
 // ==============================
 async function handleAuthRedirect() {
-  // Only run on login page
   if (window.location.pathname.includes('login.html')) {
     try {
       const { isAuthenticated, dashboard } = await authService.checkAuthAndRedirect();
@@ -193,17 +189,14 @@ async function handleAuthRedirect() {
 // DOM Event Handlers
 // ==============================
 document.addEventListener('DOMContentLoaded', function() {
-  // Wait for Firebase before initializing auth-related functionality
   authService.waitForFirebase().then(() => {
     const loginForm = document.getElementById('login-form');
     const errorDiv = document.getElementById('error-message');
     const successDiv = document.getElementById('success-message');
     const forgotBtn = document.getElementById('forgot-password');
 
-    // Auto-redirect if already authenticated
     handleAuthRedirect();
 
-    // Handle login form submission
     if (loginForm) {
       loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -214,66 +207,52 @@ document.addEventListener('DOMContentLoaded', function() {
         const password = document.getElementById('password').value;
         const rememberMe = document.getElementById('remember-me')?.checked || false;
 
-        // Show loading state
         const submitBtn = loginForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Signing in...';
         submitBtn.disabled = true;
 
         authService.signInWithEmailAndPassword(email, password, rememberMe)
-          .then(({ dashboard }) => {
-            window.location.href = dashboard;
-          })
+          .then(({ dashboard }) => window.location.href = dashboard)
           .catch(error => {
             if (errorDiv) {
               errorDiv.textContent = error.message;
               errorDiv.classList.remove('hidden');
             }
-            // Reset button
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
           });
       });
     }
 
-    // Handle forgot password
     if (forgotBtn) {
       forgotBtn.addEventListener('click', function(e) {
         e.preventDefault();
         const email = document.getElementById('email').value;
         if (!email) {
-          if (errorDiv) {
-            errorDiv.textContent = "Please enter your email first.";
-            errorDiv.classList.remove('hidden');
-          }
+          errorDiv.textContent = "Please enter your email first.";
+          errorDiv.classList.remove('hidden');
           return;
         }
 
         authService.sendPasswordResetEmail(email)
           .then(() => {
-            if (successDiv) {
-              successDiv.textContent = "Password reset email sent! Check your inbox.";
-              successDiv.classList.remove('hidden');
-            }
-            if (errorDiv) {
-              errorDiv.classList.add('hidden');
-            }
+            successDiv.textContent = "Password reset email sent! Check your inbox.";
+            successDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
           })
           .catch(error => {
-            if (errorDiv) {
-              errorDiv.textContent = error.message;
-              errorDiv.classList.remove('hidden');
-            }
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
           });
       });
     }
 
-    // Handle registration form if present
     const registerForm = document.getElementById('register-form');
     if (registerForm) {
       registerForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm-password')?.value;
@@ -281,30 +260,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const name = document.getElementById('name')?.value || '';
         const phone = document.getElementById('phone')?.value || '';
 
-        // Basic validation
         if (confirmPassword && password !== confirmPassword) {
-          if (errorDiv) {
-            errorDiv.textContent = "Passwords do not match.";
-            errorDiv.classList.remove('hidden');
-          }
+          errorDiv.textContent = "Passwords do not match.";
+          errorDiv.classList.remove('hidden');
           return;
         }
 
-        // Show loading state
         const submitBtn = registerForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Creating account...';
         submitBtn.disabled = true;
 
-        const userData = {
-          role: role,
-          name: name,
-          phone: phone
-        };
+        const userData = { role, name, phone };
 
         authService.createUserWithEmailAndPassword(email, password, userData)
           .then(({ role }) => {
-            // Redirect based on role
             let dashboard;
             switch(role) {
               case 'admin': dashboard = '/dashboard-admin.html'; break;
@@ -316,18 +286,14 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = dashboard;
           })
           .catch(error => {
-            if (errorDiv) {
-              errorDiv.textContent = error.message;
-              errorDiv.classList.remove('hidden');
-            }
-            // Reset button
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
           });
       });
     }
 
-    // Handle sign out buttons
     document.addEventListener('click', function(e) {
       if (e.target.classList.contains('sign-out-btn') || e.target.id === 'sign-out') {
         e.preventDefault();
@@ -339,15 +305,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global Auth State Monitor
     // ==============================
     window.firebaseServices.auth.onAuthStateChanged(function(user) {
-      // Update navigation based on auth state
       const loginLink = document.querySelector('a[href="login.html"]');
-      const listPropertyLink = document.querySelector('a[href*="List Your Property"], .list-property-btn');
-      
       if (user && loginLink) {
-        // User is logged in, update navigation
         authService.getCurrentUserRole().then(role => {
           if (role) {
-            // Replace login link with user menu or dashboard link
             loginLink.textContent = 'Dashboard';
             let dashboard;
             switch(role) {
@@ -361,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       } else if (!user && loginLink) {
-        // User is not logged in, ensure login link is correct
         loginLink.textContent = 'Login';
         loginLink.href = 'login.html';
       }

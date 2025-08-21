@@ -1,3 +1,10 @@
+// firebase.js
+
+// Make sure SDK scripts are loaded before this file
+if (!window.firebase) {
+  console.error("Firebase SDK not loaded!");
+}
+
 // Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsE-FHOqm9LRmC4ug82YeJ6Nyw8C1zWrc",
@@ -33,7 +40,7 @@ const bnbsCollection = db.collection('bnbs');
 const bookingsCollection = db.collection('bookings');
 const feedbackCollection = db.collection('feedback');
 const reportsCollection = db.collection('reports');
-const favoritesCollection = db.collection('favorites'); // Added missing favorites collection
+const favoritesCollection = db.collection('favorites');
 
 // Create the firebaseServices object
 window.firebaseServices = {

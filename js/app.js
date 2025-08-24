@@ -15,6 +15,7 @@ class AppController {
     this.authServiceReady = false;
     this.initializationAttempts = 0;
     this.maxInitializationAttempts = 3;
+    this.serviceReadyPromise = null;
   }
 
   // Initialize the application
@@ -33,13 +34,17 @@ class AppController {
     this.ui.setStateManager(this.state);
     
     try {
-      // Wait for Firebase and AuthService to be ready
-      await this.waitForServices();
+      // Wait for services to be ready
+      await this.ensureServicesReady();
       
       if (this.firebaseReady && this.authServiceReady) {
-        console.log("Firebase and AuthService ready, proceeding with full initialization");
-        // Set Firebase services for state
-        this.state.setFirebaseServices(firebaseServices);
+        console.log("All services ready, proceeding with full initialization");
+        
+        // Set Firebase services for state if not already set
+        if (!this.state.firebaseServices) {
+          console.log("Setting Firebase services in state manager");
+          this.state.setFirebaseServices(firebaseServices);
+        }
         
         // Set up auth listener
         await this.setupAuthListener();
@@ -47,7 +52,7 @@ class AppController {
         // Initialize state
         await this.state.initializeState();
       } else {
-        console.warn("Firebase or AuthService not available, initializing in guest mode");
+        console.warn("Services not fully ready, initializing in guest mode");
         await this.handleUserLogout();
       }
       
@@ -108,81 +113,92 @@ class AppController {
     }
   }
 
-  // Wait for Firebase and AuthService to be ready
-  async waitForServices() {
-    return new Promise((resolve) => {
-      // Check if services are already ready
-      if (firebaseServices.ready && window.authService?.isFirebaseReady()) {
-        console.log("Firebase and AuthService already ready");
-        this.firebaseReady = true;
-        this.authServiceReady = true;
+  // Ensure all services are ready - improved version
+  async ensureServicesReady() {
+    if (this.serviceReadyPromise) {
+      return this.serviceReadyPromise;
+    }
+
+    this.serviceReadyPromise = new Promise((resolve) => {
+      console.log("Checking service readiness...");
+      
+      // Check current state
+      this.checkServiceStates();
+      
+      if (this.firebaseReady && this.authServiceReady) {
+        console.log("All services already ready");
         resolve();
         return;
       }
 
-      console.log("Waiting for firebaseReady and authServiceReady events");
-      
-      let firebaseResolved = false;
-      let authServiceResolved = false;
+      let resolved = false;
       let checkInterval = null;
       let timeoutId = null;
       
-      // Firebase ready handler
-      const onFirebaseReady = () => {
-        console.log("firebaseReady event received");
-        this.firebaseReady = true;
-        firebaseResolved = true;
-        if (firebaseResolved && authServiceResolved) {
-          cleanup();
-          resolve();
-        }
-      };
-      
-      // AuthService ready handler
-      const onAuthServiceReady = () => {
-        console.log("AuthService ready event received");
-        this.authServiceReady = true;
-        authServiceResolved = true;
-        if (firebaseResolved && authServiceResolved) {
-          cleanup();
-          resolve();
-        }
-      };
-      
-      // Cleanup function
-      const cleanup = () => {
+      const resolveOnce = () => {
+        if (resolved) return;
+        resolved = true;
         if (checkInterval) clearInterval(checkInterval);
         if (timeoutId) clearTimeout(timeoutId);
-        window.removeEventListener("firebaseReady", onFirebaseReady);
+        console.log(`Services ready - Firebase: ${this.firebaseReady}, AuthService: ${this.authServiceReady}`);
+        resolve();
       };
       
-      // Set up event listeners
-      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
+      // Set up event listener for firebaseReady
+      const onFirebaseReady = () => {
+        console.log("firebaseReady event received in app controller");
+        this.checkServiceStates();
+        if (this.firebaseReady && this.authServiceReady) {
+          resolveOnce();
+        }
+      };
       
-      // Check for AuthService readiness with polling
+      window.addEventListener("firebaseReady", onFirebaseReady, { once: false });
+      
+      // Polling check for service readiness
       checkInterval = setInterval(() => {
-        if (window.authService?.isFirebaseReady()) {
-          onAuthServiceReady();
-        }
+        this.checkServiceStates();
         
-        // Also check Firebase services directly
-        if (firebaseServices.ready && !firebaseResolved) {
-          onFirebaseReady();
+        if (this.firebaseReady && this.authServiceReady) {
+          window.removeEventListener("firebaseReady", onFirebaseReady);
+          resolveOnce();
         }
-      }, 100);
+      }, 200);
       
-      // Timeout after 15 seconds (increased from 10)
+      // Timeout after 12 seconds
       timeoutId = setTimeout(() => {
-        console.warn("Firebase or AuthService initialization timeout");
-        
-        // Check what we have available
-        if (firebaseServices.ready) this.firebaseReady = true;
-        if (window.authService?.isFirebaseReady()) this.authServiceReady = true;
-        
-        cleanup();
-        resolve(); // Proceed anyway
-      }, 15000);
+        console.warn("Service initialization timeout - proceeding with available services");
+        this.checkServiceStates();
+        window.removeEventListener("firebaseReady", onFirebaseReady);
+        resolveOnce();
+      }, 12000);
     });
+
+    return this.serviceReadyPromise;
+  }
+
+  // Check and update service states
+  checkServiceStates() {
+    // Check Firebase
+    const wasFirebaseReady = this.firebaseReady;
+    this.firebaseReady = firebaseServices && 
+                         firebaseServices.ready && 
+                         firebaseServices.auth &&
+                         firebaseServices.collections;
+    
+    // Check AuthService
+    const wasAuthServiceReady = this.authServiceReady;
+    this.authServiceReady = window.authService && 
+                           typeof window.authService.isFirebaseReady === 'function' &&
+                           window.authService.isFirebaseReady();
+    
+    // Log state changes
+    if (wasFirebaseReady !== this.firebaseReady) {
+      console.log("Firebase ready state changed:", this.firebaseReady);
+    }
+    if (wasAuthServiceReady !== this.authServiceReady) {
+      console.log("AuthService ready state changed:", this.authServiceReady);
+    }
   }
 
   // Set up Firebase auth listener
@@ -194,11 +210,14 @@ class AppController {
     }
 
     try {
+      console.log("Setting up Firebase auth state listener");
       firebaseServices.auth.onAuthStateChanged(async (user) => {
         try {
           if (user) {
+            console.log("User signed in:", user.uid);
             await this.handleUserLogin(user);
           } else {
+            console.log("User signed out");
             await this.handleUserLogout();
           }
         } catch (err) {
@@ -215,8 +234,10 @@ class AppController {
   // Handle user login
   async handleUserLogin(user) {
     try {
-      if (!window.authService?.isFirebaseReady()) {
-        console.warn("AuthService not ready, setting guest state");
+      console.log("Handling user login for:", user.uid);
+      
+      if (!this.authServiceReady) {
+        console.warn("AuthService not ready, using basic user data");
         this.state.updateState({
           currentUser: { uid: user.uid, email: user.email },
           role: "guest"
@@ -226,6 +247,7 @@ class AppController {
 
       const userData = await window.authService.getCurrentUserData();
       if (userData) {
+        console.log("User data loaded:", userData);
         this.state.updateState({
           currentUser: userData,
           role: userData.role || "guest"
@@ -239,15 +261,18 @@ class AppController {
       }
       
       // Load user-specific data
-      await this.state.initializeState();
+      await this.state.loadListings();
+      await this.state.loadFavorites();
+      
     } catch (err) {
-      console.error("Error loading user data:", err);
+      console.error("Error handling user login:", err);
       this.state.setError("Error loading user data");
     }
   }
 
   // Handle user logout
   async handleUserLogout() {
+    console.log("Handling user logout - setting guest state");
     this.state.updateState({
       currentUser: null,
       role: "guest"
@@ -260,6 +285,7 @@ class AppController {
   // Initialize page-specific functionality
   initPageSpecificFunctionality() {
     const path = window.location.pathname;
+    console.log("Initializing page-specific functionality for:", path);
     
     if (path.includes("browse.html")) {
       this.initBrowsePage();
@@ -274,6 +300,7 @@ class AppController {
 
   // Browse page initialization
   initBrowsePage() {
+    console.log("Initializing browse page");
     const locationFilter = document.getElementById("location-filter");
     const priceFilter = document.getElementById("price-filter");
     const typeFilter = document.getElementById("type-filter");
@@ -315,6 +342,12 @@ class AppController {
       });
     }
 
+    // Subscribe to state changes for automatic UI updates
+    this.state.subscribe((newState) => {
+      console.log("State updated, re-rendering listings");
+      this.ui.renderListings(this.state.applyFilters());
+    });
+
     // Initial render
     const currentState = this.state.getState();
     this.ui.renderListings(currentState.listings);
@@ -322,6 +355,7 @@ class AppController {
 
   // BnB page initialization
   initBnbPage() {
+    console.log("Initializing BnB page");
     this.initBrowsePage();
     
     const amenitiesFilter = document.getElementById("amenities-filter");
@@ -338,8 +372,10 @@ class AppController {
 
   // House detail page initialization
   async initHouseDetailPage() {
+    console.log("Initializing house detail page");
     const listingId = new URLSearchParams(window.location.search).get("id");
     if (!listingId) {
+      console.warn("No listing ID found, redirecting to browse");
       window.location.href = "/browse.html";
       return;
     }
@@ -348,9 +384,11 @@ class AppController {
       const currentState = this.state.getState();
       let listing = currentState.listings?.find(l => l.id === listingId);
 
-      if (!listing && window.authService?.isFirebaseReady()) {
+      if (!listing && this.authServiceReady) {
+        console.log("Fetching listing from Firebase:", listingId);
         listing = await this.fetchListingById(listingId);
         if (!listing) {
+          console.warn("Listing not found:", listingId);
           window.location.href = "/browse.html";
           return;
         }
@@ -361,10 +399,12 @@ class AppController {
       }
 
       if (listing) {
+        console.log("Rendering listing detail:", listing);
         this.ui.renderListingDetail(listing);
         this.setupBookingForm(listingId, listing.type);
         this.setupFavoriteButton(listingId);
       } else {
+        console.warn("No listing found, redirecting to browse");
         window.location.href = "/browse.html";
       }
     } catch (err) {
@@ -375,7 +415,7 @@ class AppController {
 
   // Fetch listing by ID from Firebase
   async fetchListingById(listingId) {
-    if (!window.authService?.isFirebaseReady()) {
+    if (!this.authServiceReady) {
       console.warn("AuthService not ready, cannot fetch listing");
       return null;
     }
@@ -422,7 +462,7 @@ class AppController {
 
   // Handle booking submission
   async handleBooking(listingId, listingType) {
-    if (!window.authService?.isFirebaseReady()) {
+    if (!this.authServiceReady) {
       console.warn("AuthService not ready, cannot submit booking");
       alert("Please try again later.");
       return;
@@ -476,6 +516,21 @@ class AppController {
   generateBookingReceipt(bookingData) {
     console.log("Booking receipt generated for:", bookingData);
   }
+
+  // Utility method to check if app is ready
+  isReady() {
+    return this.initialized && this.firebaseReady && this.authServiceReady;
+  }
+
+  // Get current status
+  getStatus() {
+    return {
+      initialized: this.initialized,
+      firebaseReady: this.firebaseReady,
+      authServiceReady: this.authServiceReady,
+      isReady: this.isReady()
+    };
+  }
 }
 
 // ==============================
@@ -502,7 +557,7 @@ export function toggleMobileMenu() {
 }
 
 export function waitForFirebase() {
-  return appController.waitForServices();
+  return appController.ensureServicesReady();
 }
 
 export function updateUIFromState() {

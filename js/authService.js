@@ -8,6 +8,7 @@ class AuthService {
     this.firebaseServices = firebaseServices;
     this.stateManager = stateManager;
     this.initialized = false;
+    this.ready = false;
     this.dashboardRoutes = {
       admin: '/dashboard-admin.html',
       bnb: '/dashboard-bnb.html',
@@ -15,33 +16,58 @@ class AuthService {
       hunter: '/dashboard-hunter.html',
       default: '/'
     };
+    this.initPromise = null;
   }
 
   // Set Firebase services
   setFirebaseServices(firebaseServices) {
-    console.log("Setting firebaseServices:", firebaseServices);
+    console.log("Setting firebaseServices in AuthService:", firebaseServices);
     this.firebaseServices = firebaseServices;
+    this.checkReadiness();
     return this;
   }
 
   // Set state manager
   setStateManager(stateManager) {
+    console.log("Setting stateManager in AuthService:", stateManager);
     this.stateManager = stateManager;
     return this;
   }
 
+  // Check and update readiness status
+  checkReadiness() {
+    const wasReady = this.ready;
+    this.ready = this.firebaseServices && 
+                 this.firebaseServices.ready && 
+                 this.firebaseServices.auth &&
+                 this.firebaseServices.collections;
+    
+    if (!wasReady && this.ready) {
+      console.log("AuthService is now ready");
+      // Dispatch readiness event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('authServiceReady', {
+          detail: { authService: this }
+        }));
+      }
+    }
+    
+    return this.ready;
+  }
+
   // Check if Firebase is ready
   isFirebaseReady() {
-    return this.firebaseServices && 
-           this.firebaseServices.ready && 
-           this.firebaseServices.auth &&
-           this.firebaseServices.collections;
+    return this.checkReadiness();
   }
 
   // Wait for Firebase to be ready
   async waitForFirebase() {
-    return new Promise((resolve) => {
-      console.log("Checking Firebase readiness:", {
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = new Promise((resolve) => {
+      console.log("Checking Firebase readiness in AuthService:", {
         firebaseServices: !!this.firebaseServices,
         ready: this.firebaseServices?.ready,
         auth: !!this.firebaseServices?.auth,
@@ -49,32 +75,39 @@ class AuthService {
       });
 
       if (this.isFirebaseReady()) {
-        console.log("Firebase is ready");
+        console.log("Firebase is ready for AuthService");
         resolve();
         return;
       }
 
-      const onFirebaseReady = () => {
-        console.log("firebaseReady event received");
-        if (typeof window !== 'undefined') {
-          window.removeEventListener('firebaseReady', onFirebaseReady);
-        }
+      let resolved = false;
+      const resolveOnce = () => {
+        if (resolved) return;
+        resolved = true;
+        console.log("AuthService Firebase initialization completed");
         resolve();
       };
 
+      const onFirebaseReady = () => {
+        console.log("firebaseReady event received in AuthService");
+        if (this.isFirebaseReady()) {
+          resolveOnce();
+        }
+      };
+
       if (typeof window !== 'undefined') {
-        console.log("Adding firebaseReady event listener");
-        window.addEventListener('firebaseReady', onFirebaseReady, { once: true });
+        console.log("Adding firebaseReady event listener in AuthService");
+        window.addEventListener('firebaseReady', onFirebaseReady, { once: false });
       }
 
       const checkInterval = setInterval(() => {
         if (this.isFirebaseReady()) {
-          console.log("Firebase became ready via interval check");
+          console.log("Firebase became ready via interval check in AuthService");
           clearInterval(checkInterval);
           if (typeof window !== 'undefined') {
             window.removeEventListener('firebaseReady', onFirebaseReady);
           }
-          resolve();
+          resolveOnce();
         }
       }, 100);
 
@@ -83,10 +116,12 @@ class AuthService {
         if (typeof window !== 'undefined') {
           window.removeEventListener('firebaseReady', onFirebaseReady);
         }
-        console.error("Firebase initialization timeout in authService");
-        resolve();
-      }, 10000); // Increased to 10 seconds
+        console.warn("Firebase initialization timeout in authService");
+        resolveOnce();
+      }, 12000);
     });
+
+    return this.initPromise;
   }
 
   // Get dashboard route for role
@@ -100,13 +135,16 @@ class AuthService {
     
     if (!this.isFirebaseReady()) {
       console.warn("Firebase services not available, cannot sign in");
-      return null;
+      throw new Error("Authentication service not available");
     }
 
     try {
-      await this.firebaseServices.setPersistence(rememberMe); // Updated for Firebase v9
+      console.log("Attempting sign in for:", email);
+      await this.firebaseServices.setPersistence(rememberMe);
       const userCredential = await this.firebaseServices.signInWithEmailAndPassword(email, password);
       const uid = userCredential.user.uid;
+      
+      console.log("User signed in, fetching user document:", uid);
       const userDoc = await this.firebaseServices.collections.users.doc(uid).get();
       
       if (!userDoc.exists) {
@@ -117,6 +155,8 @@ class AuthService {
       const userData = userDoc.data();
       const role = userData.role;
       const dashboard = this.getDashboardRoute(role);
+
+      console.log("Sign in successful:", { uid, role, dashboard });
 
       if (this.stateManager?.updateState) {
         this.stateManager.updateState({
@@ -138,10 +178,11 @@ class AuthService {
     
     if (!this.isFirebaseReady()) {
       console.warn("Firebase services not available, cannot create user");
-      return null;
+      throw new Error("Authentication service not available");
     }
 
     try {
+      console.log("Creating new user account for:", email);
       const userCredential = await this.firebaseServices.createUserWithEmailAndPassword(email, password);
       const uid = userCredential.user.uid;
       const completeUserData = {
@@ -150,7 +191,10 @@ class AuthService {
         ...userData
       };
 
+      console.log("Creating user document in Firestore:", uid);
       await this.firebaseServices.collections.users.doc(uid).set(completeUserData);
+
+      console.log("User registration successful:", { uid, role: userData.role });
 
       if (this.stateManager?.updateState) {
         this.stateManager.updateState({
@@ -180,11 +224,15 @@ class AuthService {
     }
 
     return new Promise((resolve) => {
-      this.firebaseServices.onAuthStateChanged(async (user) => {
+      const unsubscribe = this.firebaseServices.onAuthStateChanged(async (user) => {
+        unsubscribe(); // Unsubscribe after first check
+        
         if (user) {
           try {
+            console.log("Checking auth for user:", user.uid);
             const userDoc = await this.firebaseServices.collections.users.doc(user.uid).get();
             if (!userDoc.exists) {
+              console.warn("User document not found:", user.uid);
               resolve({ isAuthenticated: false });
               return;
             }
@@ -193,6 +241,7 @@ class AuthService {
             const role = userData.role;
             const dashboard = this.getDashboardRoute(role);
 
+            console.log("Auth check successful:", { uid: user.uid, role, dashboard });
             resolve({ 
               isAuthenticated: true, 
               dashboard, 
@@ -205,6 +254,7 @@ class AuthService {
             resolve({ isAuthenticated: false });
           }
         } else {
+          console.log("No authenticated user found");
           resolve({ isAuthenticated: false });
         }
       });
@@ -221,11 +271,16 @@ class AuthService {
     }
 
     const user = this.firebaseServices.auth.currentUser;
-    if (!user) return null;
+    if (!user) {
+      console.log("No current user for role check");
+      return null;
+    }
 
     try {
       const userDoc = await this.firebaseServices.collections.users.doc(user.uid).get();
-      return userDoc.exists ? userDoc.data().role : null;
+      const role = userDoc.exists ? userDoc.data().role : null;
+      console.log("Current user role:", role);
+      return role;
     } catch (error) {
       console.error("Error getting user role:", error);
       return null;
@@ -241,7 +296,9 @@ class AuthService {
       return false;
     }
 
-    return this.firebaseServices.auth.currentUser !== null;
+    const isAuth = this.firebaseServices.auth.currentUser !== null;
+    console.log("Authentication check:", isAuth);
+    return isAuth;
   }
 
   // Get current user
@@ -259,11 +316,17 @@ class AuthService {
   // Get current user data from Firestore
   async getCurrentUserData() {
     const user = await this.getCurrentUser();
-    if (!user) return null;
+    if (!user) {
+      console.log("No current user for data fetch");
+      return null;
+    }
 
     try {
+      console.log("Fetching user data for:", user.uid);
       const userDoc = await this.firebaseServices.collections.users.doc(user.uid).get();
-      return userDoc.exists ? { uid: user.uid, ...userDoc.data() } : null;
+      const userData = userDoc.exists ? { uid: user.uid, ...userDoc.data() } : null;
+      console.log("User data fetched:", userData ? "Success" : "Not found");
+      return userData;
     } catch (error) {
       console.error("Error getting user data:", error);
       return null;
@@ -276,10 +339,11 @@ class AuthService {
     
     if (!this.isFirebaseReady()) {
       console.warn("Firebase services not available, cannot send password reset email");
-      throw new Error("Firebase services not available");
+      throw new Error("Authentication service not available");
     }
 
     try {
+      console.log("Sending password reset email to:", email);
       return await this.firebaseServices.sendPasswordResetEmail(email);
     } catch (error) {
       console.error("Password reset email error:", error);
@@ -289,32 +353,27 @@ class AuthService {
 
   // Sign out
   async signOut() {
-    await this.waitForFirebase();
+    console.log("Signing out user");
     
-    if (!this.isFirebaseReady()) {
-      console.warn("Firebase services not available, proceeding with sign out");
-      if (this.stateManager?.updateState) {
-        this.stateManager.updateState({ currentUser: null, role: null });
+    if (this.isFirebaseReady()) {
+      try {
+        await this.firebaseServices.signOut();
+      } catch (error) {
+        console.error("Firebase sign out error:", error);
       }
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-      return;
     }
 
-    try {
-      await this.firebaseServices.signOut();
+    if (this.stateManager?.updateState) {
+      this.stateManager.updateState({ 
+        currentUser: null, 
+        role: "guest",
+        favorites: []
+      });
+    }
 
-      if (this.stateManager?.updateState) {
-        this.stateManager.updateState({ currentUser: null, role: null });
-      }
-
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
-      }
-    } catch (error) {
-      console.error("Sign out error:", error);
-      throw error;
+    if (typeof window !== 'undefined') {
+      console.log("Redirecting to home page after sign out");
+      window.location.href = '/';
     }
   }
 
@@ -322,8 +381,10 @@ class AuthService {
   init() {
     if (this.initialized || typeof document === 'undefined') return this;
 
+    console.log("Initializing AuthService");
+    
     document.addEventListener('DOMContentLoaded', () => {
-      console.log("DOMContentLoaded, setting up event listeners and handling auth redirect");
+      console.log("DOMContentLoaded in AuthService, setting up functionality");
       this.setupEventListeners();
       this.handleAuthRedirect();
     });
@@ -336,11 +397,15 @@ class AuthService {
   async handleAuthRedirect() {
     if (typeof window === 'undefined') return;
     
-    if (window.location.pathname.includes('login.html')) {
+    const currentPath = window.location.pathname;
+    console.log("Checking auth redirect for path:", currentPath);
+    
+    if (currentPath.includes('login.html') || currentPath.includes('register.html')) {
       try {
+        console.log("On auth page, checking if user is already authenticated");
         const { isAuthenticated, dashboard } = await this.checkAuthAndRedirect();
         if (isAuthenticated && dashboard) {
-          console.log("Redirecting authenticated user to:", dashboard);
+          console.log("User already authenticated, redirecting to:", dashboard);
           window.location.href = dashboard;
         }
       } catch (error) {
@@ -352,21 +417,32 @@ class AuthService {
   // Set up DOM event listeners
   async setupEventListeners() {
     await this.waitForFirebase();
+    
     if (!this.isFirebaseReady()) {
-      console.warn("Firebase services not available, skipping event listener setup");
-      return;
+      console.warn("Firebase services not available, setting up limited event listeners");
     }
 
-    console.log("Setting up event listeners for forms and buttons");
+    console.log("Setting up AuthService event listeners");
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const errorDiv = document.getElementById('error-message');
     const successDiv = document.getElementById('success-message');
     const forgotBtn = document.getElementById('forgot-password');
 
-    if (loginForm) this.setupLoginForm(loginForm, errorDiv, successDiv);
-    if (registerForm) this.setupRegisterForm(registerForm, errorDiv);
-    if (forgotBtn) this.setupForgotPassword(forgotBtn, errorDiv, successDiv);
+    if (loginForm) {
+      console.log("Setting up login form handler");
+      this.setupLoginForm(loginForm, errorDiv, successDiv);
+    }
+    
+    if (registerForm) {
+      console.log("Setting up register form handler");
+      this.setupRegisterForm(registerForm, errorDiv);
+    }
+    
+    if (forgotBtn) {
+      console.log("Setting up forgot password handler");
+      this.setupForgotPassword(forgotBtn, errorDiv, successDiv);
+    }
 
     this.setupAuthStateMonitoring();
     this.setupSignOutButtons();
@@ -376,12 +452,22 @@ class AuthService {
   setupLoginForm(loginForm, errorDiv, successDiv) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      errorDiv?.classList.add('hidden');
-      successDiv?.classList.add('hidden');
+      console.log("Login form submitted");
+      
+      if (errorDiv) errorDiv.classList.add('hidden');
+      if (successDiv) successDiv.classList.add('hidden');
 
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const email = document.getElementById('email')?.value;
+      const password = document.getElementById('password')?.value;
       const rememberMe = document.getElementById('remember-me')?.checked || false;
+
+      if (!email || !password) {
+        if (errorDiv) {
+          errorDiv.textContent = "Please enter both email and password";
+          errorDiv.classList.remove('hidden');
+        }
+        return;
+      }
 
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       const originalText = submitBtn.textContent;
@@ -397,11 +483,12 @@ class AuthService {
           throw new Error("No dashboard route available");
         }
       } catch (error) {
-        console.error("Login error:", error);
+        console.error("Login form error:", error);
         if (errorDiv) {
-          errorDiv.textContent = error?.message || "An error occurred.";
+          errorDiv.textContent = error?.message || "Login failed. Please try again.";
           errorDiv.classList.remove('hidden');
         }
+      } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
       }
@@ -412,13 +499,24 @@ class AuthService {
   setupRegisterForm(registerForm, errorDiv) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      console.log("Register form submitted");
 
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      if (errorDiv) errorDiv.classList.add('hidden');
+
+      const email = document.getElementById('email')?.value;
+      const password = document.getElementById('password')?.value;
       const confirmPassword = document.getElementById('confirm-password')?.value;
       const role = document.getElementById('role')?.value || 'hunter';
       const name = document.getElementById('name')?.value || '';
       const phone = document.getElementById('phone')?.value || '';
+
+      if (!email || !password) {
+        if (errorDiv) {
+          errorDiv.textContent = "Please enter both email and password";
+          errorDiv.classList.remove('hidden');
+        }
+        return;
+      }
 
       if (confirmPassword && password !== confirmPassword) {
         if (errorDiv) {
@@ -446,6 +544,7 @@ class AuthService {
           errorDiv.textContent = error?.message || "Failed to create account.";
           errorDiv.classList.remove('hidden');
         }
+      } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
       }
@@ -456,7 +555,9 @@ class AuthService {
   setupForgotPassword(forgotBtn, errorDiv, successDiv) {
     forgotBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
+      console.log("Forgot password clicked");
+      
+      const email = document.getElementById('email')?.value;
 
       if (!email) {
         if (errorDiv) {
@@ -490,7 +591,10 @@ class AuthService {
       return;
     }
 
+    console.log("Setting up auth state monitoring");
     this.firebaseServices.onAuthStateChanged(async (user) => {
+      console.log("Auth state changed:", user ? user.uid : "signed out");
+      
       const loginLink = document.querySelector('a[href="login.html"], a[href="/login.html"]');
 
       if (user && loginLink) {
@@ -514,13 +618,26 @@ class AuthService {
 
   // Setup sign out button handlers
   setupSignOutButtons() {
+    console.log("Setting up sign out button handlers");
     document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('sign-out-btn') || e.target.id === 'sign-out') {
+      if (e.target.classList.contains('sign-out-btn') || 
+          e.target.id === 'sign-out' || 
+          e.target.closest('.sign-out-btn')) {
         e.preventDefault();
         console.log("Sign out button clicked");
         this.signOut().catch((error) => console.error("Sign out failed:", error));
       }
     });
+  }
+
+  // Get service status
+  getStatus() {
+    return {
+      initialized: this.initialized,
+      ready: this.ready,
+      firebaseReady: this.isFirebaseReady(),
+      hasStateManager: !!this.stateManager
+    };
   }
 }
 
@@ -534,8 +651,10 @@ const defaultAuthService = new AuthService();
 
 // Auto-initialize with window globals if available
 if (typeof window !== 'undefined') {
+  console.log("Setting up AuthService auto-initialization");
+  
   const initializeAuthService = () => {
-    console.log("Initializing AuthService with firebaseServices:", window.firebaseServices);
+    console.log("Initializing AuthService with available services");
     if (window.firebaseServices) {
       defaultAuthService.setFirebaseServices(window.firebaseServices);
     }
@@ -544,18 +663,30 @@ if (typeof window !== 'undefined') {
     }
     defaultAuthService.init();
     window.authService = defaultAuthService;
+    
+    console.log("AuthService initialized and ready");
   };
 
+  // Check if Firebase is already ready
   if (window.firebaseServices?.ready) {
-    console.log("Firebase services already ready, initializing AuthService");
+    console.log("Firebase services already ready, initializing AuthService immediately");
     initializeAuthService();
   } else {
     console.log("Waiting for firebaseReady event to initialize AuthService");
     window.addEventListener('firebaseReady', () => {
       console.log("firebaseReady event received, initializing AuthService");
-      initializeAuthService();
+      // Small delay to ensure proper initialization order
+      setTimeout(initializeAuthService, 50);
     }, { once: true });
   }
+
+  // Listen for state manager ready event
+  window.addEventListener('stateManagerReady', (e) => {
+    console.log("stateManagerReady event received");
+    if (defaultAuthService && e.detail?.stateManager) {
+      defaultAuthService.setStateManager(e.detail.stateManager);
+    }
+  });
 }
 
 // Export for module usage

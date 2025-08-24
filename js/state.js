@@ -18,6 +18,7 @@ class StateManager {
         amenities: [],
       },
       error: null,
+      isOffline: false,
     };
     this.listeners = [];
   }
@@ -68,6 +69,14 @@ class StateManager {
   async toggleFavorite(listingId, callback) {
     if (!window.authService?.isFirebaseReady() || !this.state.currentUser) {
       console.warn("AuthService not ready or no user, cannot toggle favorite");
+      // Still update UI state for better UX
+      const index = this.state.favorites.indexOf(listingId);
+      if (index >= 0) {
+        this.state.favorites.splice(index, 1);
+      } else {
+        this.state.favorites.push(listingId);
+      }
+      this.notify();
       if (typeof callback === "function") callback();
       return this;
     }
@@ -100,6 +109,13 @@ class StateManager {
       if (typeof callback === "function") callback();
     } catch (err) {
       console.error("Error toggling favorite:", err);
+      // Revert UI changes on error
+      const index = this.state.favorites.indexOf(listingId);
+      if (index >= 0) {
+        this.state.favorites.splice(index, 1);
+      } else {
+        this.state.favorites.push(listingId);
+      }
       this.setError("Failed to update favorites");
       if (typeof callback === "function") callback();
     }
@@ -117,6 +133,14 @@ class StateManager {
   // Clear error
   clearError(callback) {
     this.state.error = null;
+    this.notify();
+    if (typeof callback === "function") callback();
+    return this;
+  }
+
+  // Set offline status
+  setOfflineStatus(isOffline, callback) {
+    this.state.isOffline = isOffline;
     this.notify();
     if (typeof callback === "function") callback();
     return this;
@@ -170,7 +194,7 @@ class StateManager {
 
   // Check if Firebase services are properly initialized
   isFirebaseReady() {
-    return window.authService?.isFirebaseReady() || false;
+    return this.firebaseServices && window.authService?.isFirebaseReady();
   }
 
   // Firebase integration methods
@@ -201,6 +225,7 @@ class StateManager {
       }));
     } catch (err) {
       console.error(`Error fetching collection ${collectionName}:`, err);
+      this.setOfflineStatus(true);
       return [];
     }
   }
@@ -213,15 +238,22 @@ class StateManager {
       return;
     }
     
-    const userData = await window.authService.getCurrentUserData();
-    this.state.currentUser = userData || null;
-    this.state.role = userData ? userData.role || "guest" : "guest";
+    try {
+      const userData = await window.authService.getCurrentUserData();
+      this.state.currentUser = userData || null;
+      this.state.role = userData ? userData.role || "guest" : "guest";
+    } catch (err) {
+      console.error("Error loading user data:", err);
+      this.state.currentUser = null;
+      this.state.role = "guest";
+    }
   }
 
   async loadListings() {
     if (!this.isFirebaseReady()) {
-      console.warn("AuthService not ready, skipping listings load");
-      this.state.listings = [];
+      console.warn("AuthService not ready, loading fallback listings");
+      this.state.listings = this.getFallbackListings();
+      this.setOfflineStatus(true);
       return;
     }
     
@@ -230,9 +262,18 @@ class StateManager {
       const houses = await this.fetchCollection("houses", !currentUser);
       const bnbs = await this.fetchCollection("bnbs", !currentUser);
       this.state.listings = [...houses, ...bnbs];
+      
+      // If we couldn't load any listings from Firebase, use fallback
+      if (this.state.listings.length === 0) {
+        this.state.listings = this.getFallbackListings();
+        this.setOfflineStatus(true);
+      } else {
+        this.setOfflineStatus(false);
+      }
     } catch (err) {
       console.error("Error loading listings:", err);
-      this.state.listings = [];
+      this.state.listings = this.getFallbackListings();
+      this.setOfflineStatus(true);
     }
   }
 
@@ -257,15 +298,58 @@ class StateManager {
     }
   }
 
+  // Get fallback listings for offline mode
+  getFallbackListings() {
+    return [
+      {
+        id: "fallback-1",
+        type: "house",
+        title: "Cozy Downtown Apartment",
+        location: "New York",
+        price: 120,
+        bedrooms: 2,
+        bathrooms: 1,
+        amenities: ["wifi", "kitchen", "tv"],
+        image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+        public: true
+      },
+      {
+        id: "fallback-2",
+        type: "bnb",
+        title: "Lakeside Cabin Retreat",
+        location: "Lake Tahoe",
+        price: 210,
+        bedrooms: 3,
+        bathrooms: 2,
+        amenities: ["wifi", "kitchen", "parking", "fireplace"],
+        image: "https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+        public: true
+      },
+      {
+        id: "fallback-3",
+        type: "house",
+        title: "Modern Beach House",
+        location: "Miami",
+        price: 350,
+        bedrooms: 4,
+        bathrooms: 3,
+        amenities: ["wifi", "pool", "ocean-view", "kitchen"],
+        image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+        public: true
+      }
+    ];
+  }
+
   // Initialize state by fetching from Firebase
   async initializeState(callback) {
     try {
       if (!this.isFirebaseReady()) {
-        console.warn("AuthService not initialized, initializing with guest state");
+        console.warn("Firebase not initialized, initializing with guest state and fallback data");
         this.state.currentUser = null;
         this.state.role = "guest";
-        this.state.listings = [];
+        this.state.listings = this.getFallbackListings();
         this.state.favorites = [];
+        this.setOfflineStatus(true);
         this.notify();
         if (typeof callback === "function") callback();
         return this;
@@ -280,8 +364,9 @@ class StateManager {
     } catch (err) {
       console.error("Error initializing state:", err);
       this.setError(err.message || "Error loading listings");
-      this.state.listings = [];
+      this.state.listings = this.getFallbackListings();
       this.state.favorites = [];
+      this.setOfflineStatus(true);
       this.notify();
       if (typeof callback === "function") callback();
     }
@@ -303,6 +388,10 @@ class StateManager {
 
   hasError() {
     return this.state.error !== null;
+  }
+
+  isOfflineMode() {
+    return this.state.isOffline;
   }
 
   // Get current state (read-only)

@@ -11,11 +11,17 @@ class AppController {
     this.state = state;
     this.ui = ui;
     this.initialized = false;
+    this.firebaseReady = false;
+    this.authServiceReady = false;
+    this.initializationAttempts = 0;
+    this.maxInitializationAttempts = 3;
   }
 
   // Initialize the application
   async init() {
     if (this.initialized) return;
+    
+    console.log("Starting app initialization - Attempt", this.initializationAttempts + 1);
     
     // Register service worker
     this.registerServiceWorker();
@@ -30,25 +36,40 @@ class AppController {
       // Wait for Firebase and AuthService to be ready
       await this.waitForServices();
       
-      // Set Firebase services for state
-      this.state.setFirebaseServices(firebaseServices);
-      
-      // Set up auth listener
-      await this.setupAuthListener();
-      
-      // Initialize state
-      await this.state.initializeState();
+      if (this.firebaseReady && this.authServiceReady) {
+        console.log("Firebase and AuthService ready, proceeding with full initialization");
+        // Set Firebase services for state
+        this.state.setFirebaseServices(firebaseServices);
+        
+        // Set up auth listener
+        await this.setupAuthListener();
+        
+        // Initialize state
+        await this.state.initializeState();
+      } else {
+        console.warn("Firebase or AuthService not available, initializing in guest mode");
+        await this.handleUserLogout();
+      }
       
     } catch (err) {
       console.error("Error during app initialization:", err);
       // Continue initialization with guest state
       await this.handleUserLogout();
+      
+      // Retry initialization if needed
+      if (this.initializationAttempts < this.maxInitializationAttempts) {
+        this.initializationAttempts++;
+        console.log(`Retrying initialization (${this.initializationAttempts}/${this.maxInitializationAttempts})`);
+        setTimeout(() => this.init(), 2000);
+        return;
+      }
     }
     
     // Initialize page-specific functionality
     this.initPageSpecificFunctionality();
     
     this.initialized = true;
+    console.log("App initialization completed");
   }
 
   // Register service worker
@@ -90,62 +111,105 @@ class AppController {
   // Wait for Firebase and AuthService to be ready
   async waitForServices() {
     return new Promise((resolve) => {
+      // Check if services are already ready
       if (firebaseServices.ready && window.authService?.isFirebaseReady()) {
-        console.log("Firebase and AuthService ready, proceeding with app initialization");
+        console.log("Firebase and AuthService already ready");
+        this.firebaseReady = true;
+        this.authServiceReady = true;
         resolve();
         return;
       }
 
-      console.log("Waiting for firebaseReady event in app.js");
+      console.log("Waiting for firebaseReady and authServiceReady events");
+      
+      let firebaseResolved = false;
+      let authServiceResolved = false;
+      let checkInterval = null;
+      let timeoutId = null;
+      
+      // Firebase ready handler
       const onFirebaseReady = () => {
-        if (window.authService?.isFirebaseReady()) {
-          console.log("firebaseReady event received and AuthService ready in app.js");
-          window.removeEventListener("firebaseReady", onFirebaseReady);
+        console.log("firebaseReady event received");
+        this.firebaseReady = true;
+        firebaseResolved = true;
+        if (firebaseResolved && authServiceResolved) {
+          cleanup();
           resolve();
         }
       };
-      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
-
-      // Polling fallback
-      const checkInterval = setInterval(() => {
-        if (firebaseServices.ready && window.authService?.isFirebaseReady()) {
-          console.log("Firebase and AuthService became ready via interval check");
-          clearInterval(checkInterval);
-          window.removeEventListener("firebaseReady", onFirebaseReady);
+      
+      // AuthService ready handler
+      const onAuthServiceReady = () => {
+        console.log("AuthService ready event received");
+        this.authServiceReady = true;
+        authServiceResolved = true;
+        if (firebaseResolved && authServiceResolved) {
+          cleanup();
           resolve();
         }
-      }, 100);
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
+      };
+      
+      // Cleanup function
+      const cleanup = () => {
+        if (checkInterval) clearInterval(checkInterval);
+        if (timeoutId) clearTimeout(timeoutId);
         window.removeEventListener("firebaseReady", onFirebaseReady);
-        console.warn("Firebase or AuthService initialization timeout in app.js");
-        resolve(); // Proceed without Firebase to avoid blocking
-      }, 10000);
+      };
+      
+      // Set up event listeners
+      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
+      
+      // Check for AuthService readiness with polling
+      checkInterval = setInterval(() => {
+        if (window.authService?.isFirebaseReady()) {
+          onAuthServiceReady();
+        }
+        
+        // Also check Firebase services directly
+        if (firebaseServices.ready && !firebaseResolved) {
+          onFirebaseReady();
+        }
+      }, 100);
+      
+      // Timeout after 15 seconds (increased from 10)
+      timeoutId = setTimeout(() => {
+        console.warn("Firebase or AuthService initialization timeout");
+        
+        // Check what we have available
+        if (firebaseServices.ready) this.firebaseReady = true;
+        if (window.authService?.isFirebaseReady()) this.authServiceReady = true;
+        
+        cleanup();
+        resolve(); // Proceed anyway
+      }, 15000);
     });
   }
 
   // Set up Firebase auth listener
   async setupAuthListener() {
-    if (!firebaseServices.auth || !window.authService?.isFirebaseReady()) {
-      console.warn("Firebase auth or AuthService not available, setting guest state");
+    if (!this.firebaseReady || !firebaseServices.auth) {
+      console.warn("Firebase auth not available, setting guest state");
       await this.handleUserLogout();
       return;
     }
 
-    firebaseServices.auth.onAuthStateChanged(async (user) => {
-      try {
-        if (user) {
-          await this.handleUserLogin(user);
-        } else {
-          await this.handleUserLogout();
+    try {
+      firebaseServices.auth.onAuthStateChanged(async (user) => {
+        try {
+          if (user) {
+            await this.handleUserLogin(user);
+          } else {
+            await this.handleUserLogout();
+          }
+        } catch (err) {
+          console.error("Auth state change error:", err);
+          this.state.setError(err.message || "Authentication error");
         }
-      } catch (err) {
-        console.error("Auth state change error:", err);
-        this.state.setError(err.message || "Authentication error");
-      }
-    });
+      });
+    } catch (err) {
+      console.error("Error setting up auth listener:", err);
+      await this.handleUserLogout();
+    }
   }
 
   // Handle user login

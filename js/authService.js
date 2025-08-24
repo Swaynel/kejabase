@@ -1,14 +1,21 @@
 // js/authService.js
 // ==============================
-// Modular Authentication Service
+// Modular Authentication Service (full)
+// - Preserves your features
+// - Adds role guard, smarter redirects, mobile-menu toggle on auth pages
+// - Works with your firebaseServices + state.js patterns
 // ==============================
 
 class AuthService {
   constructor(firebaseServices = null, stateManager = null) {
     this.firebaseServices = firebaseServices;
     this.stateManager = stateManager;
+
     this.initialized = false;
     this.ready = false;
+    this.initPromise = null;
+
+    // Centralized dashboard routes
     this.dashboardRoutes = {
       admin: '/dashboard-admin.html',
       bnb: '/dashboard-bnb.html',
@@ -16,9 +23,11 @@ class AuthService {
       hunter: '/dashboard-hunter.html',
       default: '/'
     };
-    this.initPromise = null;
   }
 
+  // ----------------------------
+  // Wiring
+  // ----------------------------
   setFirebaseServices(firebaseServices) {
     this.firebaseServices = firebaseServices;
     this.checkReadiness();
@@ -32,10 +41,13 @@ class AuthService {
 
   checkReadiness() {
     const wasReady = this.ready;
-    this.ready = !!(this.firebaseServices &&
+    this.ready = !!(
+      this.firebaseServices &&
       this.firebaseServices.ready &&
       this.firebaseServices.auth &&
-      this.firebaseServices.collections);
+      this.firebaseServices.collections &&
+      typeof this.firebaseServices.onAuthStateChanged === 'function'
+    );
     if (!wasReady && this.ready && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('authServiceReady', { detail: { authService: this } }));
     }
@@ -51,12 +63,16 @@ class AuthService {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = new Promise((resolve) => {
-      const done = () => { resolve(); };
-      const onReady = () => { if (this.isFirebaseReady()) { window.removeEventListener('firebaseReady', onReady); done(); } };
+      const done = () => resolve();
+      const onReady = () => {
+        if (this.isFirebaseReady()) {
+          window.removeEventListener('firebaseReady', onReady);
+          done();
+        }
+      };
       if (typeof window !== 'undefined') {
         window.addEventListener('firebaseReady', onReady);
       }
-      // fallback timeout
       setTimeout(() => {
         if (typeof window !== 'undefined') window.removeEventListener('firebaseReady', onReady);
         resolve();
@@ -66,41 +82,98 @@ class AuthService {
     return this.initPromise;
   }
 
+  // ----------------------------
+  // Helpers
+  // ----------------------------
   getDashboardRoute(role) {
     return this.dashboardRoutes[role] || this.dashboardRoutes.default;
   }
 
-  // ---- Auth Core ----
+  toAbsPath(path) {
+    // Accepts "/x.html" or "x.html" and returns an absolute path
+    if (!path) return '/';
+    return path.startsWith('/') ? path : `/${path}`;
+  }
 
+  safeReplace(path) {
+    try {
+      window.location.replace(this.toAbsPath(path));
+    } catch {
+      window.location.href = this.toAbsPath(path);
+    }
+  }
+
+  getQueryParam(name) {
+    try {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    } catch {
+      return null;
+    }
+  }
+
+  buildNextParam() {
+    try {
+      const { pathname, search, hash } = window.location;
+      const full = `${pathname}${search || ''}${hash || ''}`;
+      return encodeURIComponent(full);
+    } catch {
+      return encodeURIComponent('/');
+    }
+  }
+
+  postAuthRedirect(role) {
+    // Prefer ?next=... if present, otherwise route by role
+    const next = this.getQueryParam('next');
+    const fallback = this.getDashboardRoute(role);
+
+    // Minimal sanitization: prevent navigating to external protocol origins
+    if (next && /^\/[^\s]*$/.test(next)) {
+      // If next is an auth page, ignore and go to dashboard
+      if (next.includes('login.html') || next.includes('register.html')) {
+        return fallback;
+      }
+      return next;
+    }
+    return fallback;
+  }
+
+  // ----------------------------
+  // Core Auth API (Firestore-backed profile)
+  // ----------------------------
   async signInWithEmailAndPassword(email, password, rememberMe = false) {
     await this.waitForFirebase();
     if (!this.isFirebaseReady()) throw new Error("Authentication service not available");
 
     try {
-      await this.firebaseServices.setPersistence(rememberMe);
+      // Persistence via your wrapper (falls back if not provided)
+      if (typeof this.firebaseServices.setPersistence === 'function') {
+        await this.firebaseServices.setPersistence(rememberMe);
+      }
+
       const userCredential = await this.firebaseServices.signInWithEmailAndPassword(email, password);
       const uid = userCredential.user.uid;
 
+      // Load Firestore profile
       const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, uid);
       const userDoc = await this.firebaseServices.getDoc(userRef);
 
       if (!userDoc.exists()) {
-        await this.firebaseServices.signOut();
+        await this.firebaseServices.signOut?.();
         throw new Error("User data not found in Firestore.");
       }
 
       const userData = userDoc.data();
       const role = userData.role;
-      const dashboard = this.getDashboardRoute(role);
+      const redirect = this.postAuthRedirect(role);
 
-      if (this.stateManager?.updateState) {
-        this.stateManager.updateState({
-          currentUser: { uid, ...userData },
-          role
-        });
-      }
+      // Update app state
+      this.stateManager?.updateState?.({
+        currentUser: { uid, ...userData },
+        role
+      });
 
-      return { user: userCredential.user, role, dashboard, userData };
+      return { user: userCredential.user, role, dashboard: redirect, userData };
     } catch (error) {
       console.error(error);
       throw error;
@@ -124,68 +197,17 @@ class AuthService {
       const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, uid);
       await this.firebaseServices.setDoc(userRef, completeUserData);
 
-      if (this.stateManager?.updateState) {
-        this.stateManager.updateState({
-          currentUser: { uid, ...completeUserData },
-          role: userData.role
-        });
-      }
+      // Update state
+      this.stateManager?.updateState?.({
+        currentUser: { uid, ...completeUserData },
+        role: completeUserData.role || 'hunter'
+      });
 
-      return { user: cred.user, role: userData.role, userData: completeUserData };
+      return { user: cred.user, role: completeUserData.role, userData: completeUserData };
     } catch (error) {
       console.error(error);
       throw error;
     }
-  }
-
-  async checkAuthAndRedirect() {
-    await this.waitForFirebase();
-    if (!this.isFirebaseReady()) return { isAuthenticated: false };
-
-    return new Promise((resolve) => {
-      const unsubscribe = this.firebaseServices.onAuthStateChanged(this.firebaseServices.auth, async (user) => {
-        unsubscribe?.();
-        if (!user) return resolve({ isAuthenticated: false });
-
-        try {
-          const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, user.uid);
-          const userDoc = await this.firebaseServices.getDoc(userRef);
-          if (!userDoc.exists()) return resolve({ isAuthenticated: false });
-
-          const userData = userDoc.data();
-          const role = userData.role;
-          const dashboard = this.getDashboardRoute(role);
-
-          resolve({ isAuthenticated: true, dashboard, role, user, userData });
-        } catch (error) {
-          console.error(error);
-          resolve({ isAuthenticated: false });
-        }
-      });
-    });
-  }
-
-  async getCurrentUserRole() {
-    await this.waitForFirebase();
-    if (!this.isFirebaseReady()) return null;
-
-    const user = this.firebaseServices.auth.currentUser;
-    if (!user) return null;
-
-    try {
-      const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, user.uid);
-      const userDoc = await this.firebaseServices.getDoc(userRef);
-      return userDoc.exists() ? userDoc.data().role : null;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
-  async isAuthenticated() {
-    await this.waitForFirebase();
-    if (!this.isFirebaseReady()) return false;
-    return this.firebaseServices.auth.currentUser !== null;
   }
 
   async getCurrentUser() {
@@ -197,7 +219,6 @@ class AuthService {
   async getCurrentUserData() {
     const user = await this.getCurrentUser();
     if (!user) return null;
-
     try {
       const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, user.uid);
       const userDoc = await this.firebaseServices.getDoc(userRef);
@@ -206,6 +227,17 @@ class AuthService {
       console.error(error);
       return null;
     }
+  }
+
+  async getCurrentUserRole() {
+    const data = await this.getCurrentUserData();
+    return data?.role || null;
+  }
+
+  async isAuthenticated() {
+    await this.waitForFirebase();
+    if (!this.isFirebaseReady()) return false;
+    return this.firebaseServices.auth.currentUser !== null;
   }
 
   async sendPasswordResetEmail(email) {
@@ -228,61 +260,94 @@ class AuthService {
       console.error(error);
     }
 
-    if (this.stateManager?.updateState) {
-      this.stateManager.updateState({
-        currentUser: null,
-        role: "guest",
-        favorites: []
-      });
-    }
-
-    if (typeof window !== 'undefined') {
-      window.location.replace('/');
-    }
-  }
-
-  // ---- DOM Wiring ----
-
-  init() {
-    if (this.initialized || typeof document === 'undefined') return this;
-
-    // Bind *immediately* to prevent native form submissions even if Firebase isn't ready yet.
-    document.addEventListener('DOMContentLoaded', () => {
-      this.bindCoreFormGuards();   // prevent query-string credential leaks
-      this.setupEventListeners();  // wire full handlers (doesn't wait for Firebase)
-      this.handleAuthRedirect();
+    this.stateManager?.updateState?.({
+      currentUser: null,
+      role: "guest",
+      favorites: []
     });
 
-    this.initialized = true;
-    return this;
+    // Always return to home after sign-out
+    this.safeReplace('/');
   }
 
-  // Prevent native submits & wire minimal UX guards right away
-  bindCoreFormGuards() {
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
+  // ----------------------------
+  // Role Guard (per-page protection)
+  // ----------------------------
+  /**
+   * enforceRoleGuard("admin") or enforceRoleGuard(["provider", "bnb"])
+   * - Not logged in -> redirect to /login.html?next=<current>
+   * - Wrong role     -> redirect to their correct dashboard
+   */
+  async enforceRoleGuard(requiredRoleOrRoles) {
+    await this.waitForFirebase();
+    const requiredRoles = Array.isArray(requiredRoleOrRoles)
+      ? requiredRoleOrRoles
+      : [requiredRoleOrRoles];
 
-    const preventSubmit = (form) => {
-      if (!form) return;
-      form.addEventListener('submit', (e) => {
-        // Always prevent native submission to avoid GET /login.html?email=...&password=...
-        e.preventDefault();
-      }, { capture: true });
-    };
+    const user = await this.getCurrentUser();
+    if (!user) {
+      const next = this.buildNextParam();
+      this.safeReplace(`/login.html?next=${next}`);
+      return false;
+    }
 
-    preventSubmit(loginForm);
-    preventSubmit(registerForm);
+    try {
+      const userData = await this.getCurrentUserData();
+      const role = userData?.role;
+      if (!role) throw new Error("Missing role on user.");
+
+      if (!requiredRoles.includes(role)) {
+        this.safeReplace(this.getDashboardRoute(role));
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Role guard error:", err);
+      await this.signOut();
+      return false;
+    }
+  }
+
+  // ----------------------------
+  // Page bootstrap & redirects
+  // ----------------------------
+  async checkAuthAndRedirect() {
+    await this.waitForFirebase();
+    if (!this.isFirebaseReady()) return { isAuthenticated: false };
+
+    return new Promise((resolve) => {
+      const unsubscribe = this.firebaseServices.onAuthStateChanged(this.firebaseServices.auth, async (user) => {
+        unsubscribe?.();
+        if (!user) return resolve({ isAuthenticated: false });
+
+        try {
+          const userRef = this.firebaseServices.doc(this.firebaseServices.collections.users, user.uid);
+          const userDoc = await this.firebaseServices.getDoc(userRef);
+          if (!userDoc.exists()) return resolve({ isAuthenticated: false });
+
+          const userData = userDoc.data();
+          const role = userData.role;
+          const dashboard = this.postAuthRedirect(role);
+
+          resolve({ isAuthenticated: true, dashboard, role, user, userData });
+        } catch (error) {
+          console.error(error);
+          resolve({ isAuthenticated: false });
+        }
+      });
+    });
   }
 
   async handleAuthRedirect() {
     if (typeof window === 'undefined') return;
 
-    const currentPath = window.location.pathname;
-    if (currentPath.includes('login.html') || currentPath.includes('register.html')) {
+    const path = window.location.pathname;
+    if (path.includes('login.html') || path.includes('register.html')) {
       try {
         const { isAuthenticated, dashboard } = await this.checkAuthAndRedirect();
         if (isAuthenticated && dashboard) {
-          window.location.replace(dashboard);
+          this.safeReplace(dashboard);
         }
       } catch (error) {
         console.error(error);
@@ -290,7 +355,39 @@ class AuthService {
     }
   }
 
-  // Wire handlers (these do not block on Firebase; they call into auth when ready)
+  // ----------------------------
+  // DOM bindings (forms + UX)
+  // ----------------------------
+  init() {
+    if (this.initialized || typeof document === 'undefined') return this;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Always guard forms early (prevents GET submits with creds)
+      this.bindCoreFormGuards();
+
+      // Wire form handlers, forgot password, navbar state, signout buttons
+      this.setupEventListeners();
+
+      // Enable mobile menu on auth pages (login/register) without app.js
+      this.setupMobileMenuToggle();
+
+      // If already logged in, kick off redirects away from auth pages
+      this.handleAuthRedirect();
+    });
+
+    this.initialized = true;
+    return this;
+  }
+
+  bindCoreFormGuards() {
+    const stopNativeSubmit = (form) => {
+      if (!form) return;
+      form.addEventListener('submit', (e) => e.preventDefault(), { capture: true });
+    };
+    stopNativeSubmit(document.getElementById('login-form'));
+    stopNativeSubmit(document.getElementById('register-form'));
+  }
+
   setupEventListeners() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -310,8 +407,8 @@ class AuthService {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      if (errorDiv) errorDiv.classList.add('hidden');
-      if (successDiv) successDiv.classList.add('hidden');
+      errorDiv?.classList.add('hidden');
+      successDiv?.classList.add('hidden');
 
       const email = document.getElementById('email')?.value?.trim();
       const password = document.getElementById('password')?.value;
@@ -331,8 +428,8 @@ class AuthService {
 
       try {
         const { dashboard } = await this.signInWithEmailAndPassword(email, password, rememberMe);
-        if (dashboard) window.location.replace(dashboard);
-        else throw new Error("No dashboard route available.");
+        if (!dashboard) throw new Error("No dashboard route available.");
+        this.safeReplace(dashboard);
       } catch (error) {
         if (errorDiv) {
           errorDiv.textContent = error?.message || "Login failed. Please try again.";
@@ -348,8 +445,7 @@ class AuthService {
   setupRegisterForm(registerForm, errorDiv) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      if (errorDiv) errorDiv.classList.add('hidden');
+      errorDiv?.classList.add('hidden');
 
       const email = document.getElementById('email')?.value?.trim();
       const password = document.getElementById('password')?.value;
@@ -381,9 +477,9 @@ class AuthService {
       const userData = { role, name, phone };
 
       try {
-        const { role: userRole } = await this.createUserWithEmailAndPassword(email, password, userData);
-        const dashboard = this.getDashboardRoute(userRole);
-        window.location.replace(dashboard);
+        const { role: createdRole } = await this.createUserWithEmailAndPassword(email, password, userData);
+        const redirect = this.postAuthRedirect(createdRole);
+        this.safeReplace(redirect);
       } catch (error) {
         if (errorDiv) {
           errorDiv.textContent = error?.message || "Failed to create account.";
@@ -411,11 +507,8 @@ class AuthService {
 
       try {
         await this.sendPasswordResetEmail(email);
-        if (successDiv) {
-          successDiv.textContent = "Password reset email sent!";
-          successDiv.classList.remove('hidden');
-        }
-        if (errorDiv) errorDiv.classList.add('hidden');
+        successDiv && (successDiv.textContent = "Password reset email sent!", successDiv.classList.remove('hidden'));
+        errorDiv?.classList.add('hidden');
       } catch (error) {
         if (errorDiv) {
           errorDiv.textContent = "Failed to send password reset email.";
@@ -461,6 +554,17 @@ class AuthService {
     });
   }
 
+  setupMobileMenuToggle() {
+    // Provide a lightweight mobile-menu toggle for pages that
+    // don’t include app.js (e.g., login/register).
+    const btn = document.getElementById('mobile-menu-button');
+    const menu = document.getElementById('mobile-menu');
+    if (!btn || !menu) return;
+    btn.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
+    });
+  }
+
   getStatus() {
     return {
       initialized: this.initialized,
@@ -476,7 +580,7 @@ export function createAuthService(firebaseServices = null, stateManager = null) 
   return new AuthService(firebaseServices, stateManager);
 }
 
-// Default instance w/ auto-init
+// Default instance w/ auto-init + window glue
 const defaultAuthService = new AuthService();
 
 if (typeof window !== 'undefined') {

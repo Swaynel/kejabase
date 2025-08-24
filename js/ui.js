@@ -1,469 +1,155 @@
 // js/ui.js
 // ==============================
-// Modular UI Manager
+// UI Manager
 // ==============================
 
+import { stateManager } from './state.js';
+
 class UIManager {
-  constructor(stateManager = null) {
-    this.stateManager = stateManager;
-    this.unsubscribe = null;
-    this.eventListeners = new Map();
+  constructor(stateManagerInstance) {
+    this.stateManager = stateManagerInstance;
+    this.userEmailElement = document.getElementById('user-email');
+    this.authButtons = document.getElementById('auth-buttons');
+    this.logoutButton = document.getElementById('logout-btn');
+    this.listingsContainer = document.getElementById('listings');
+    this.favoritesContainer = document.getElementById('favorites');
+    this.navLinks = document.querySelectorAll('#nav-links a');
+
+    this.firebaseReady = false;
+    this.stateReady = false;
+    this.readyTimeout = null;
   }
 
-  // Set the state manager
-  setStateManager(stateManager) {
-    console.log("Setting stateManager in UIManager:", stateManager);
-    // Unsubscribe from previous state manager
-    if (this.unsubscribe) {
-      this.unsubscribe();
-    }
-    
-    this.stateManager = stateManager;
-    
-    // Subscribe to state changes if state manager supports it
-    if (stateManager && typeof stateManager.subscribe === 'function') {
-      this.unsubscribe = stateManager.subscribe(() => {
-        this.updateFromState();
-      });
-    }
-    
-    return this;
-  }
-
-  // Get current state
-  getState() {
-    return this.stateManager?.getState?.() || this.stateManager?.state || {};
-  }
-
-  // Loading indicators
-  showLoading() {
-    document.querySelectorAll('.loading-indicator').forEach(el => {
-      el.classList.remove('hidden');
+  async initialize() {
+    // Handle readiness events
+    window.addEventListener('firebaseReady', () => {
+      this.firebaseReady = true;
+      this.tryInitialize();
     });
-    return this;
-  }
 
-  hideLoading() {
-    document.querySelectorAll('.loading-indicator').forEach(el => {
-      el.classList.add('hidden');
+    window.addEventListener('stateReady', () => {
+      this.stateReady = true;
+      this.tryInitialize();
     });
-    return this;
-  }
 
-  // Error handling
-  showError(message, elementId = 'error-message') {
-    const el = document.getElementById(elementId);
-    if (el) {
-      el.textContent = message;
-      el.classList.remove('hidden');
-    }
-    return this;
-  }
-
-  hideError(elementId = 'error-message') {
-    const el = document.getElementById(elementId);
-    if (el) {
-      el.classList.add('hidden');
-    }
-    return this;
-  }
-
-  // Navigation updates
-  updateNavigation() {
-    const currentState = this.getState();
-    const currentUser = currentState.currentUser;
-    const role = currentState.role;
-
-    document.querySelectorAll('[data-auth]').forEach(link => {
-      const requiredAuth = link.getAttribute('data-auth');
-      const shouldShow = 
-        (role === requiredAuth) ||
-        (currentUser && requiredAuth === 'authenticated') ||
-        (!currentUser && requiredAuth === 'guest');
-      
-      link.classList.toggle('hidden', !shouldShow);
-    });
-    
-    return this;
-  }
-
-  // Date picker initialization
-  initDatePickers() {
-    const today = new Date().toISOString().split('T')[0];
-    document.querySelectorAll('input[type="date"]').forEach(input => {
-      if (!input.value) {
-        input.value = today;
+    // Fallback timeout
+    this.readyTimeout = setTimeout(() => {
+      if (!this.firebaseReady || !this.stateReady) {
+        console.error('[UI] Initialization timeout: Firebase or State not ready.');
+        this.initUI(); // proceed anyway
       }
-    });
-    return this;
+    }, 5000);
+
+    // Also poll as safety net
+    this.pollForReadiness();
   }
 
-  // Favorite button updates
-  updateFavoriteButton(listingId) {
-    const btn = document.getElementById('favorite-button');
-    if (!btn) return this;
+  pollForReadiness() {
+    const checkReady = () => {
+      if (this.firebaseReady && this.stateReady) {
+        this.tryInitialize();
+      } else {
+        setTimeout(checkReady, 200);
+      }
+    };
+    checkReady();
+  }
 
-    const currentState = this.getState();
-    const isFavorite = currentState.favorites?.includes(listingId) || false;
-    
-    btn.textContent = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
-    
-    // Update button styles
-    if (isFavorite) {
-      btn.className = 'mt-4 px-4 py-2 rounded bg-red-500 hover:bg-red-600 text-white';
-    } else {
-      btn.className = 'mt-4 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800';
+  tryInitialize() {
+    if (this.firebaseReady && this.stateReady) {
+      clearTimeout(this.readyTimeout);
+      this.initUI();
     }
-    
-    return this;
   }
 
-  // Create listing card HTML
-  createListingCard(listing) {
-    const currentState = this.getState();
-    const isFavorite = currentState.favorites?.includes(listing.id) || false;
-    
-    return `
-      <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
-        <a href="/house-detail.html?id=${listing.id}">
-          <div class="relative">
-            <img src="${listing.images?.[0] || '/images/placeholder.jpg'}" 
-                 alt="${listing.title}" class="w-full h-48 object-cover">
-            <div class="absolute top-2 right-2">
-              <button class="favorite-btn p-2 bg-white rounded-full shadow-md" data-id="${listing.id}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ${
-                  isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-400'
-                }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="p-4">
-            <h3 class="font-semibold text-lg mb-1">${listing.title}</h3>
-            <p class="text-gray-600 text-sm mb-2">${listing.location}</p>
-            <div class="flex justify-between items-center">
-              <span class="font-bold">$${listing.price}${listing.type === 'bnb' ? '/night' : '/month'}</span>
-            </div>
-          </div>
-        </a>
-      </div>`;
-  }
-
-  // Handle favorite button clicks
-  handleFavoriteClick(listingId, element) {
-    if (!this.stateManager?.toggleFavorite) {
-      console.warn('State manager does not support toggleFavorite');
+  initUI() {
+    if (!this.stateManager) {
+      console.error('[UI] StateManager not available.');
       return;
     }
 
-    this.stateManager.toggleFavorite(listingId);
+    // Initial UI state
+    this.updateUI();
 
-    // Update UI immediately for better UX
-    const svg = element.querySelector('svg');
-    const currentState = this.getState();
-    const isFavorite = currentState.favorites?.includes(listingId) || false;
-
-    if (isFavorite) {
-      svg.classList.add('text-red-500', 'fill-red-500');
-      svg.classList.remove('text-gray-400');
-    } else {
-      svg.classList.remove('text-red-500', 'fill-red-500');
-      svg.classList.add('text-gray-400');
-    }
-  }
-
-  // Render listings
-  renderListings(listings) {
-    const container = document.getElementById('listings-container');
-    if (!container) return this;
-
-    // Clear existing content
-    container.innerHTML = '';
-
-    // Handle empty listings
-    if (!listings?.length) {
-      container.innerHTML = `
-        <div class="col-span-full text-center py-12">
-          <p class="text-lg text-gray-600">No listings match your filters.</p>
-        </div>`;
-      return this;
-    }
-
-    // Render each listing
-    listings.forEach(listing => {
-      const div = document.createElement('div');
-      div.innerHTML = this.createListingCard(listing);
-      
-      // Add favorite button event listener
-      const favoriteBtn = div.querySelector('.favorite-btn');
-      if (favoriteBtn) {
-        favoriteBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.handleFavoriteClick(listing.id, favoriteBtn);
-        });
-      }
-      
-      container.appendChild(div.firstElementChild);
+    // State change listener
+    this.stateManager.onAuthChange((user) => {
+      this.updateUI(user);
     });
 
-    return this;
-  }
-
-  // Render listing detail page
-  renderListingDetail(listing) {
-    const container = document.getElementById('listing-detail-container');
-    if (!container) return this;
-
-    const currentState = this.getState();
-    const isFavorite = currentState.favorites?.includes(listing.id) || false;
-    
-    const imagesHTML = listing.images?.length ? 
-      listing.images.map(img => `<img src="${img}" class="w-full h-40 object-cover rounded">`).join('') : 
-      '<p class="text-gray-500">No images available</p>';
-
-    container.innerHTML = `
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-bold mb-2">${listing.title}</h2>
-        <p class="text-gray-600 mb-2">${listing.location}</p>
-        <p class="text-gray-700 mb-4">${listing.description || 'No description available.'}</p>
-        <p class="font-bold text-lg mb-2">$${listing.price}${listing.type === 'bnb' ? '/night' : '/month'}</p>
-        <div class="grid grid-cols-2 gap-2 mb-4">
-          ${imagesHTML}
-        </div>
-        <button id="favorite-button" class="mt-4 px-4 py-2 rounded ${
-          isFavorite ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
-        }">
-          ${isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-        </button>
-      </div>`;
-
-    // Add favorite button event listener
-    const favBtn = document.getElementById('favorite-button');
-    if (favBtn) {
-      favBtn.addEventListener('click', () => {
-        if (this.stateManager?.toggleFavorite) {
-          this.stateManager.toggleFavorite(listing.id);
-          this.updateFavoriteButton(listing.id);
+    // Event listeners
+    if (this.logoutButton) {
+      this.logoutButton.addEventListener('click', async () => {
+        try {
+          await this.stateManager.logout();
+        } catch (err) {
+          console.error('[UI] Logout failed:', err);
         }
       });
     }
 
-    return this;
+    if (this.navLinks) {
+      this.navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.navigateTo(link.getAttribute('href'));
+        });
+      });
+    }
+
+    console.info('[UI] Initialized successfully.');
   }
 
-  // Filter event handlers
-  setupFilterHandlers() {
-    // Remove existing listeners
-    this.removeEventListeners();
+  updateUI(user = this.stateManager.getCurrentUser()) {
+    if (!this.userEmailElement || !this.authButtons || !this.logoutButton) return;
 
-    // Type filter
-    const typeSelect = document.getElementById('filter-type');
-    if (typeSelect) {
-      const handler = (e) => {
-        if (this.stateManager?.updateState) {
-          const currentState = this.getState();
-          const newFilters = { ...currentState.filters, type: e.target.value };
-          this.stateManager.updateState({ filters: newFilters });
-          this.renderListings(this.stateManager.applyFilters?.() || []);
-        }
-      };
-      typeSelect.addEventListener('change', handler);
-      this.eventListeners.set(typeSelect, { event: 'change', handler });
-    }
-
-    // Location filter
-    const locationInput = document.getElementById('filter-location');
-    if (locationInput) {
-      const handler = (e) => {
-        if (this.stateManager?.updateState) {
-          const currentState = this.getState();
-          const newFilters = { ...currentState.filters, location: e.target.value };
-          this.stateManager.updateState({ filters: newFilters });
-          this.renderListings(this.stateManager.applyFilters?.() || []);
-        }
-      };
-      locationInput.addEventListener('input', handler);
-      this.eventListeners.set(locationInput, { event: 'input', handler });
-    }
-
-    // Price filters
-    const priceMinInput = document.getElementById('filter-price-min');
-    const priceMaxInput = document.getElementById('filter-price-max');
-    
-    const updatePriceFilter = () => {
-      if (this.stateManager?.updateState) {
-        const min = parseFloat(priceMinInput?.value) || 0;
-        const max = parseFloat(priceMaxInput?.value) || Infinity;
-        const currentState = this.getState();
-        const newFilters = { ...currentState.filters, priceRange: [min, max] };
-        this.stateManager.updateState({ filters: newFilters });
-        this.renderListings(this.stateManager.applyFilters?.() || []);
-      }
-    };
-
-    if (priceMinInput) {
-      priceMinInput.addEventListener('input', updatePriceFilter);
-      this.eventListeners.set(priceMinInput, { event: 'input', handler: updatePriceFilter });
-    }
-    if (priceMaxInput) {
-      priceMaxInput.addEventListener('input', updatePriceFilter);
-      this.eventListeners.set(priceMaxInput, { event: 'input', handler: updatePriceFilter });
-    }
-
-    // Amenity filters
-    const amenityCheckboxes = document.querySelectorAll('input[name="filter-amenities"]');
-    const amenityHandler = () => {
-      if (this.stateManager?.updateState) {
-        const selectedAmenities = Array.from(amenityCheckboxes)
-          .filter(checkbox => checkbox.checked)
-          .map(checkbox => checkbox.value);
-        
-        const currentState = this.getState();
-        const newFilters = { ...currentState.filters, amenities: selectedAmenities };
-        this.stateManager.updateState({ filters: newFilters });
-        this.renderListings(this.stateManager.applyFilters?.() || []);
-      }
-    };
-
-    amenityCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', amenityHandler);
-      this.eventListeners.set(checkbox, { event: 'change', handler: amenityHandler });
-    });
-
-    return this;
-  }
-
-  // Remove event listeners
-  removeEventListeners() {
-    this.eventListeners.forEach((listenerData, element) => {
-      element.removeEventListener(listenerData.event, listenerData.handler);
-    });
-    this.eventListeners.clear();
-    return this;
-  }
-
-  // Update UI from state changes
-  updateFromState() {
-    if (!this.stateManager) {
-      console.warn("StateManager not set, skipping UI update");
-      return this;
-    }
-
-    this.updateNavigation();
-    
-    // Update listings if on listings page
-    const listingsContainer = document.getElementById('listings-container');
-    if (listingsContainer && this.stateManager?.applyFilters) {
-      this.renderListings(this.stateManager.applyFilters());
-    }
-
-    // Handle errors
-    const currentState = this.getState();
-    if (currentState.error) {
-      this.showError(currentState.error);
+    if (user) {
+      this.userEmailElement.textContent = user.email;
+      this.authButtons.style.display = 'none';
+      this.logoutButton.style.display = 'inline-block';
     } else {
-      this.hideError();
+      this.userEmailElement.textContent = '';
+      this.authButtons.style.display = 'flex';
+      this.logoutButton.style.display = 'none';
     }
-
-    return this;
   }
 
-  // Initialize UI
-  async init() {
-    // Wait for AuthService and StateManager to be ready
-    await new Promise((resolve) => {
-      if (window.authService?.isFirebaseReady() && window.state) {
-        console.log("AuthService and StateManager ready, initializing UIManager");
-        resolve();
-        return;
-      }
-
-      console.log("Waiting for firebaseReady event in ui.js");
-      const onFirebaseReady = () => {
-        if (window.authService?.isFirebaseReady() && window.state) {
-          console.log("firebaseReady event received and services ready in ui.js");
-          window.removeEventListener("firebaseReady", onFirebaseReady);
-          resolve();
-        }
-      };
-      window.addEventListener("firebaseReady", onFirebaseReady, { once: true });
-
-      // Polling fallback
-      const checkInterval = setInterval(() => {
-        if (window.authService?.isFirebaseReady() && window.state) {
-          console.log("AuthService and StateManager became ready via interval check");
-          clearInterval(checkInterval);
-          window.removeEventListener("firebaseReady", onFirebaseReady);
-          resolve();
-        }
-      }, 100);
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        window.removeEventListener("firebaseReady", onFirebaseReady);
-        console.warn("AuthService or StateManager initialization timeout in ui.js");
-        resolve(); // Proceed to avoid blocking
-      }, 10000);
-    });
-
-    this.updateNavigation();
-    this.initDatePickers();
-    this.setupFilterHandlers();
-    
-    // Initial state update
-    if (this.stateManager) {
-      this.updateFromState();
-    }
-    
-    return this;
+  navigateTo(page) {
+    if (!page) return;
+    console.info(`[UI] Navigating to ${page}`);
+    window.location.href = page;
   }
 
-  // Cleanup method
-  destroy() {
-    this.removeEventListeners();
-    if (this.unsubscribe) {
-      this.unsubscribe();
-      this.unsubscribe = null;
+  renderListings(listings) {
+    if (!this.listingsContainer) return;
+    this.listingsContainer.innerHTML = listings.map(listing => `
+      <div class="listing-card">
+        <h3>${listing.title}</h3>
+        <p>${listing.description}</p>
+        <button onclick="uiManager.toggleFavorite('${listing.id}')">
+          ${this.stateManager.isFavorite(listing.id) ? 'Remove Favorite' : 'Add Favorite'}
+        </button>
+      </div>
+    `).join('');
+  }
+
+  renderFavorites(favorites) {
+    if (!this.favoritesContainer) return;
+    this.favoritesContainer.innerHTML = favorites.map(fav => `
+      <div class="favorite-card">
+        <h4>${fav.title}</h4>
+        <button onclick="uiManager.toggleFavorite('${fav.id}')">Remove</button>
+      </div>
+    `).join('');
+  }
+
+  toggleFavorite(listingId) {
+    try {
+      this.stateManager.toggleFavorite(listingId);
+      this.renderFavorites(this.stateManager.getFavorites());
+    } catch (err) {
+      console.error('[UI] Failed to toggle favorite:', err);
     }
-    return this;
   }
 }
 
-// Factory function to create a UI manager
-export function createUIManager(stateManager = null) {
-  return new UIManager(stateManager);
-}
-
-// Create default instance
-const defaultUIManager = new UIManager();
-
-// Auto-initialize with window.state if available
-if (typeof window !== 'undefined') {
-  console.log("Checking window.state for UIManager initialization");
-  const initializeUIManager = () => {
-    if (window.state && window.authService?.isFirebaseReady()) {
-      console.log("Setting stateManager in defaultUIManager");
-      defaultUIManager.setStateManager(window.state);
-      window.ui = defaultUIManager;
-      defaultUIManager.init();
-    }
-  };
-
-  if (window.state && window.authService?.isFirebaseReady()) {
-    console.log("StateManager and AuthService ready, initializing UIManager");
-    initializeUIManager();
-  } else {
-    console.log("Waiting for firebaseReady event to initialize UIManager");
-    window.addEventListener('firebaseReady', () => {
-      console.log("firebaseReady event received, initializing UIManager");
-      initializeUIManager();
-    }, { once: true });
-  }
-}
-
-// Export for module usage
-export default defaultUIManager;
-export { UIManager };
+export const uiManager = new UIManager(stateManager);
